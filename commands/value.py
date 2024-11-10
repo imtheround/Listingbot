@@ -3,7 +3,7 @@ import os
 import discord
 from discord.ext import commands
 from discord import *
-import requests
+
 import os
 import json
 import sys
@@ -13,7 +13,7 @@ import traceback
 import datetime
 
 from discord.ui import Button, View, Modal, TextInput
-from requests.exceptions import URLRequired
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'utils'))
 from utils.getStatsForCmd import getStatsForCmd
 from utils.caching import Caching
