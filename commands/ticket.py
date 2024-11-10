@@ -18,8 +18,7 @@ from utils.generalUtils import handleError
 from utils.getUuid import get_uuid
 from utils.fetchStats import fetchNetworth
 
-
-# Initialize SQLite3 database
+#this is so weird
 conn = sqlite3.connect('tickets.db')
 cursor = conn.cursor()
 cursor.execute('''CREATE TABLE IF NOT EXISTS tickets (
@@ -92,15 +91,12 @@ class TicketSystem(commands.Cog):
                 }
             )
 
-            # Generate a unique 8-character random key for the ticket
             ticket_key = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
 
-            # Store the ticket information in the SQLite database
             cursor.execute('INSERT INTO tickets (ticket_key, user_id, claimed_user_id, channel_id, messages) VALUES (?, ?, ?, ?, ?)',
                            (ticket_key, interaction.user.id, None, ticket_channel.id, ""))
             conn.commit()
 
-            # Create an embed for the ticket creation
             ticket_embed = discord.Embed(
                 title="📝 Ticket Created",
                 description=f"Ticket created by {interaction.user.mention}\n**Ticket Key:** {ticket_key}",
@@ -111,7 +107,6 @@ class TicketSystem(commands.Cog):
             ticket_embed.add_field(name="Macro Type", value=self.macro.value, inline=False)
             ticket_embed.add_field(name="Skycrypt Link", value=f"https://sky.shiiyu.moe/stats/{self.username.value}", inline=False)
 
-            # Create buttons for the ticket
             view = View()
             add_button = Button(label="Add User", style=discord.ButtonStyle.secondary)
             claim_button = Button(label="Claim", style=discord.ButtonStyle.success)
@@ -155,6 +150,9 @@ class TicketSystem(commands.Cog):
                 stats = await stats.get_stats(username)
             else:
                 stats = await stats.get_stats(username, profile)
+            if stats['sucess'] == False:
+                await ticket_channel.send(embed=discord.Embed(title="Error", description=stats['cause']))
+                return
             profileName = next(iter(stats.keys()))
             gamemode = f"{stats[profileName]['gameMode']}"
             if gamemode == "Normal":
@@ -204,12 +202,11 @@ class TicketSystem(commands.Cog):
             user_id_modal = self.UserIDModal()
             await interaction.response.send_modal(user_id_modal)
 
-            await user_id_modal.wait()  # Wait for modal submission
+            await user_id_modal.wait()  
             user_id = user_id_modal.user_id
 
             if user_id:
                 try:
-                    # Attempt to fetch the user directly from the server
                     user = await interaction.guild.fetch_member(user_id)
                     await ticket_channel.set_permissions(user, read_messages=True, send_messages=True)
                     await interaction.followup.send(f"{user.mention} has been added to the ticket.", ephemeral=True)
