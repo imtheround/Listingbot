@@ -5,15 +5,13 @@ import json
 from utils.generalUtils import handleError
 from db.dbStuff import dbStuff
 
-# Load the token
 with open("/home/round/projects/ListingBot/config.json", "r") as f:
     token = json.load(f)["token"]
 
-# Set up the bot with required intents
 intents = discord.Intents.all()
-intents.message_content = True  # Ensure message content intent is enabled
+intents.message_content = True 
 bot = commands.Bot(command_prefix='!', intents=intents)
-
+bot.help_command = None
 async def load_commands():
     for filename in os.listdir('/home/round/projects/ListingBot/commands'):
         if filename.endswith('.py'):
@@ -24,15 +22,10 @@ async def load_commands():
 async def on_ready():
     await handleError().initProject()
     await dbStuff().init()
-    await load_commands()  # Load commands when the bot is ready
-    await bot.tree.sync()  # Sync commands only once here
+    await load_commands()  
+    await bot.tree.sync() 
     print(f'Logged in as {bot.user}!')
 
-# Temporary command added directly to bot.py for testing
-@bot.tree.command(name="dm_test", description="Test command for DM")
-async def dm_test(interaction: discord.Interaction):
-    await interaction.response.send_message("This command works in both DMs and servers!")
 
-# Run the bot
 if __name__ == "__main__":
     bot.run(token)
