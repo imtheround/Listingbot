@@ -122,7 +122,6 @@ class DynamicButton(
                 stats = await self.stats.get_stats(username=self.username, profile="")
             else:
                 stats = await self.stats.get_stats(username=self.username, profile=self.profile)
-            stats = await self.stats.get_stats(username=self.username)
             username = self.username
             uuid = await get_uuid(username,)
             try:

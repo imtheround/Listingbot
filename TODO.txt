@@ -1,5 +1,5 @@
 1. Fix farming (DONE)
-2. Add profile to cache so it selects the right one (buggy asf) 
+2. Add profile to cache so it selects the right one (buggy asf) not working 
 3. fix lowball with spcific profile done
 4. lowball -> value done
 5. ./stats  

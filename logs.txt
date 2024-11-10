@@ -461,3 +461,24 @@ Traceback (most recent call last):
                        ~~~~~^^^^^^^^^^^^
 KeyError: 'profiles'
  while running in lowball.py
+[2024-11-09 19:21:36.963427] Error: 
+Traceback (most recent call last):
+  File "/home/round/projects/ListingBot/commands/lowball.py", line 47, in lowball
+    gamemode = f"{stats[profileName]['gameMode']}"
+                  ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+TypeError: 'bool' object is not subscriptable
+ while running in lowball.py
+[2024-11-09 19:22:04.892807] Error: 
+Traceback (most recent call last):
+  File "/home/round/projects/ListingBot/commands/lowball.py", line 47, in lowball
+    gamemode = f"{stats[profileName]['gameMode']}"
+                  ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+TypeError: 'bool' object is not subscriptable
+ while running in lowball.py
+[2024-11-10 18:40:37.479318] Error: 
+Traceback (most recent call last):
+  File "/home/round/projects/ListingBot/utils/fetchStats.py", line 12, in get_data
+    self.playerSocial = self.profileStats['social']
+                        ~~~~~~~~~~~~~~~~~^^^^^^^^^^
+KeyError: 'social'
+ while running in fetchStats.py

@@ -5,8 +5,18 @@ from discord import app_commands
 from discord.ui import Button, View, Modal, TextInput
 import os
 import sqlite3
+import chat_exporter
+import datetime
+import io
 import random
+from db.dbStuff import dbStuff
 import string
+from utils.getStatsForCmd import getStatsForCmd
+from utils.caching import Caching
+from utils.getProfile import get_profile
+from utils.generalUtils import handleError
+from utils.getUuid import get_uuid
+from utils.fetchStats import fetchNetworth
 
 
 # Initialize SQLite3 database
@@ -19,28 +29,26 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS tickets (
     channel_id INTEGER,
     messages TEXT
 )''')
+
 conn.commit()
 
-# Admin and role IDs
-ADMIN_ROLE_ID = 1301953795999404053
+
 SELLER_ROLE_ID = 1302366645204811808
-LOGS_CHANNEL_ID = 1302378520009375814
+
 
 class TicketSystem(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-
+        
     @app_commands.command(name="ticket", description="Create a ticket to sell your Macro Ready Account!")
     async def ticket(self, interaction: discord.Interaction):
+        if interaction.user.guild_permissions.administrator == False:
+            await interaction.response.send_message("Not sigma enough!", ephemeral=True)
+            return
         embed = discord.Embed(
             title="Open a account selling ticket",
             description=( 
-                "**TOS:**\n"
-                "By creating a ticket, you agree to the following terms:\n"
-                "- You must wait **24 hours** before payment to ensure your session has expired.\n"
-                "- Refunds are not possible if any of the terms are broken.\n"
-                "- Be honest about your account's condition and details.\n"
-                "Please click the button below to create a ticket."
+                "Click the button below to create a ticket."
             ),
             color=discord.Color.blue()
         )
@@ -59,20 +67,28 @@ class TicketSystem(commands.Cog):
 
     class TicketModal(Modal, title="Ticket Information"):
         username = TextInput(label="Username", placeholder="Enter your in-game name", required=True)
+        profile = TextInput(label="Profile", placeholder="Enter your profile",required=False)
         offer = TextInput(label="Offer", placeholder="Enter your offer", required=True)
         macro = TextInput(label="Macro Type", placeholder="Farming or Mining", required=True)
-
+        def __init__(self):
+            super().__init__()
+            self.export = chat_exporter
         async def on_submit(self, interaction: discord.Interaction):
+            await interaction.response.defer()
             guild = interaction.guild
-
+            ADMIN_ROLE_ID = await dbStuff().get_seller_role()
+            ADMIN_ROLE_ID = ADMIN_ROLE_ID[0]
+            if ADMIN_ROLE_ID == "foo":
+                await interaction.response.send_message("No seller role found.", ephemeral=True)
+                return
             # Create a new ticket channel with a nicer name format
-            ticket_channel_name = f"💲｜{self.username.value}｜{self.offer.value}"
+            ticket_channel_name = f"💲｜sell {self.username.value}｜{self.offer.value}"
             ticket_channel = await guild.create_text_channel(
                 name=ticket_channel_name,
                 overwrites={
                     guild.default_role: discord.PermissionOverwrite(read_messages=False),
                     interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-                    guild.get_role(ADMIN_ROLE_ID): discord.PermissionOverwrite(read_messages=True, send_messages=True)
+                    guild.get_role(int(ADMIN_ROLE_ID)): discord.PermissionOverwrite(read_messages=True, send_messages=True)
                 }
             )
 
@@ -112,7 +128,7 @@ class TicketSystem(commands.Cog):
                 await self.unclaim_ticket(interaction, ticket_key)
 
             async def close_button_callback(interaction: discord.Interaction):
-                await self.close_ticket(interaction, ticket_channel)
+                await self.close_ticket(interaction, ticket_channel, ticket_key)
 
             add_button.callback = add_button_callback
             claim_button.callback = claim_button_callback
@@ -123,10 +139,53 @@ class TicketSystem(commands.Cog):
             view.add_item(claim_button)
             view.add_item(unclaim_button)
             view.add_item(close_button)
-
+            LOGS_CHANNEL_ID = await dbStuff().get_logs_channel()
+            try:
+                LOGS_CHANNEL_ID = LOGS_CHANNEL_ID[0]
+            except:
+                await interaction.response.send_message("No logs channel found.", ephemeral=True)
+                return
             await ticket_channel.send(embed=ticket_embed, view=view)
-
-            # Log the ticket creation in the logs channel
+            await ticket_channel.send(f"# PLEASE ONLY DEAL WITHIN THIS TICKET, IF SOMEONE DMS YOU, WE ARE NOT RESPONSIBLE FOR ANYTHING IT. (note that only the deal within the ticket will be noted)")
+            username = self.username.value
+            uuid = await get_uuid(username)
+            profile = self.profile.value.capitalize()
+            stats = getStatsForCmd()
+            if not profile:
+                stats = await stats.get_stats(username)
+            else:
+                stats = await stats.get_stats(username, profile)
+            profileName = next(iter(stats.keys()))
+            gamemode = f"{stats[profileName]['gameMode']}"
+            if gamemode == "Normal":
+                title = f"**Lowball for {username} on {profileName}**"
+            elif gamemode == "ironman":
+                title = f"**Lowball for {username}♻️**"
+            else:
+                title = f"**Lowball for {username} in {gamemode}**"
+            catacombs = f"**{stats['valuation']['lowball']['Catacombs Value']}$**"
+            skills = f"**{stats['valuation']['lowball']['skill_value']}$**"
+            hotm = f"**{stats['valuation']['lowball']['HOTM Value']}$**"
+            total_value = f"**{str(round(float(stats['valuation']['lowball']['total value'].replace(",", "")), 2))}$**"
+            slayer = f"**{stats['valuation']['lowball']['Slayer Value']}$**"
+            truenw = float(str(stats['valuation']['lowball']['Soulbound Networth']).replace(",", "")) + float(str(stats['valuation']['lowball']['Unsoulbound Networth']).replace(",", "")) - float(str(stats['valuation']['lowball']['Liquid Coins Value']).replace(",", ""))
+            networth = f"**{round(truenw, 2)}$**"
+            view = View(timeout=60)
+            embed = discord.Embed(
+                title=title,
+                color=discord.Color.pink(),
+                timestamp=datetime.datetime.now()
+            )
+            embed.url = f"https://sky.shiiyu.moe/stats/{uuid}"
+            embed.add_field(name="**Skills:**", value=skills, inline=False)
+            embed.add_field(name="**Networth:**", value=networth, inline=False)
+            embed.add_field(name="**HOTM:**", value=hotm, inline=False)
+            embed.add_field(name="**Slayers:**", value=slayer, inline=False)
+            embed.add_field(name="**Catacombs:**", value=catacombs, inline=False)
+            embed.add_field(name="**Total Value:**", value=total_value, inline=False)
+            embed.set_thumbnail(url=f"https://mc-heads.net/body/{uuid}/left")
+            embed.set_footer(text="Made by Totally_not_toxic (Round) with ♡", icon_url="https://cdn.discordapp.com/avatars/895394445195903047/d84af1c3e97bdb221e20f9c5aaad43db.png?size=1024")
+            await ticket_channel.send(embed=embed)
             logs_channel = guild.get_channel(LOGS_CHANNEL_ID)
             if logs_channel:
                 log_embed = discord.Embed(
@@ -135,14 +194,12 @@ class TicketSystem(commands.Cog):
                     color=discord.Color.blue()
                 )
                 await logs_channel.send(embed=log_embed)
-
-            # Ping the seller role
+        
+            SELLER_ROLE_ID = await dbStuff().get_seller_role()
             seller_role = guild.get_role(SELLER_ROLE_ID)
+            
             if seller_role:
                 await ticket_channel.send(f"{seller_role.mention} A new ticket has been created!")
-
-            await interaction.response.send_message(f"Ticket created! Ticket Key: {ticket_key}", ephemeral=True)
-
         async def add_user(self, interaction: discord.Interaction, ticket_channel):
             user_id_modal = self.UserIDModal()
             await interaction.response.send_modal(user_id_modal)
@@ -183,10 +240,29 @@ class TicketSystem(commands.Cog):
             else:
                 await interaction.response.send_message("You cannot unclaim a ticket that you haven't claimed.", ephemeral=True)
 
-        async def close_ticket(self, interaction: discord.Interaction, ticket_channel):
+        async def close_ticket(self, interaction: discord.Interaction, ticket_channel, ticket_key):
+            await interaction.response.defer()
+            transcript = await self.export.export(ticket_channel)
+            transcript_file = discord.File(
+                    io.BytesIO(transcript.encode()),
+                    filename=f"transcript{ticket_key}.html",
+                )
+            e = await dbStuff().get_logs_channel()
+            if e == "foo":
+                await interaction.response.send_message("No logs channel found.", ephemeral=True)
+                return
+            e = e[0]
+            logs_channel = interaction.guild.get_channel(int(e))
+            message = await logs_channel.send(f"Chat exported for ticket {ticket_key}", file=transcript_file)
+            link = await chat_exporter.link(message)
+            embed = discord.Embed(
+                title="📝 Chat Exported",
+                description=f"Chat exported for ticket {ticket_key}\n[View transcript]({link})",
+                color=discord.Color.green()
+            )
+            await interaction.user.send(embed=embed)
+            cursor.execute('DELETE FROM tickets WHERE ticket_key = ?', (ticket_channel.id,))
             await ticket_channel.delete()
-            await interaction.response.send_message(f"The ticket channel has been closed.", ephemeral=True)
-
         class UserIDModal(Modal, title="Add User to Ticket"):
             user_id_input = TextInput(label="User ID", placeholder="Enter the user's ID", required=True)
 
@@ -197,33 +273,7 @@ class TicketSystem(commands.Cog):
                 except ValueError:
                     await interaction.response.send_message("Invalid user ID. Please enter a valid number.", ephemeral=True)
 
-    @commands.Cog.listener()
-    async def on_message(self, message: discord.Message):
-        if message.author.bot:
-            return  # Ignore bot messages
 
-        cursor.execute('SELECT channel_id FROM tickets')
-        ticket_channel_ids = [row[0] for row in cursor.fetchall()]
-
-        if message.channel.id in ticket_channel_ids:
-            cursor.execute('SELECT messages FROM tickets WHERE channel_id = ?', (message.channel.id,))
-            result = cursor.fetchone()
-            if result:
-                messages = result[0]
-                messages += f"{message.author}: {message.content}\n"
-                cursor.execute('UPDATE tickets SET messages = ? WHERE channel_id = ?', (messages, message.channel.id))
-                conn.commit()
-
-    @app_commands.command(name="transcript", description="View the transcript of a ticket")
-    async def transcript(self, interaction: discord.Interaction, key: str):
-        cursor.execute('SELECT messages FROM tickets WHERE ticket_key = ?', (key,))
-        result = cursor.fetchone()
-
-        if result:
-            messages = result[0]
-            await interaction.response.send_message(f"Transcript for ticket {key}:\n{messages}", ephemeral=True)
-        else:
-            await interaction.response.send_message("No transcript found for this ticket key.", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(TicketSystem(bot))

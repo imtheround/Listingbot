@@ -31,7 +31,7 @@ let maxLvL = {
   Social: 25,
 };
 export default async function fetchStats(uuid, username) {
-  const key = "03d6194b-62bb-4e75-88d8-4d6c777a2196";
+  const key = "585787b7-091e-4b6e-babc-7795f40a248a";
   if (!uuid) return;
   let promises = [];
   let stats = {
