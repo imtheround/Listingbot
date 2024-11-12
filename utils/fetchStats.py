@@ -10,6 +10,7 @@ class fetchNetworth():
             self.uuid = uuid
             self.profileStats = runJsFetchstat.run_js_fetchstat(username, self.uuid)
             self.playerSocial = self.profileStats['social']
+            self.rank = self.profileStats['rank']
             self.profiles = []
             self.skyblockProfiles = []
             for i in range(len(self.profileStats['skyblock'])):
@@ -69,6 +70,7 @@ class fetchNetworth():
             self.stats = {
                 "sucess": True,
                 "social": self.playerSocial,
+                "rank": self.rank,
                 "last_updated": datetime.datetime.timestamp(datetime.datetime.now()),
                 "profiles": self.skyblockProfiles
             }

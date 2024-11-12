@@ -20,7 +20,7 @@ class dbStuff:
         await self.cursor.execute("CREATE TABLE IF NOT EXISTS ownerids (id INTEGER PRIMARY KEY)")
         await self.cursor.execute("CREATE TABLE IF NOT EXISTS verified (id TEXT PRIMARY KEY)")
         await self.cursor.execute("CREATE TABLE IF NOT EXISTS logs (id TEXT)")
-
+        await self.cursor.execute("CREATE TABLE IF NOT EXISTS listing (id TEXT PRIMARY KEY)")
         # Ensure the 'seller' table has at least one row with a TEXT value for 'id'
         await self.cursor.execute("SELECT COUNT(*) FROM seller")
         if (await self.cursor.fetchone())[0] == 0:
@@ -35,7 +35,9 @@ class dbStuff:
         await self.cursor.execute("SELECT COUNT(*) FROM logs")
         if (await self.cursor.fetchone())[0] == 0:
             await self.cursor.execute("INSERT INTO logs (id) VALUES (?)", ('foo',))
-
+        await self.cursor.execute("SELECT COUNT(*) FROM listing")
+        if (await self.cursor.fetchone())[0] == 0:
+            await self.cursor.execute("INSERT INTO listing (id) VALUES (?)", ('foo',))
         # Commit the changes to the database
         await self.db.commit()
 
@@ -93,3 +95,17 @@ class dbStuff:
             await cursor.execute("SELECT * FROM logs")
             return await cursor.fetchone()
 
+    async def set_listing_catergory(self, listing_category):
+        async with aiosqlite.connect("database.db") as db:
+            cursor = await db.cursor()
+            await cursor.execute("UPDATE listing SET category = ?", (listing_category,))
+            await db.commit()
+    async def get_listing_category(self):
+        async with aiosqlite.connect("database.db") as db:
+            cursor = await db.cursor()
+            await cursor.execute("SELECT * FROM listing")
+            return await cursor.fetchone()
+
+
+async def setup(bot):
+    await bot.add_cog(dbStuff(bot))

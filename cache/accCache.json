@@ -1,1 +1,315 @@
-{}
+{
+    "IrksomeHail08": {
+        "sucess": true,
+        "social": {},
+        "last_updated": 1731283174.335854,
+        "profiles": [
+            {
+                "Banana": {
+                    "catacombs": {
+                        "archer": 0,
+                        "mage": 0,
+                        "berserk": 0,
+                        "tank": 0,
+                        "healer": 0,
+                        "level": 0
+                    },
+                    "skills": {
+                        "Fishing": 0,
+                        "Mining": 0,
+                        "Combat": 0,
+                        "Foraging": 0,
+                        "Taming": 0,
+                        "Enchanting": 0,
+                        "Alchemy": 0,
+                        "Carpentry": 0,
+                        "Runecrafting": 0,
+                        "Social": 0,
+                        "avg": 0
+                    },
+                    "hotm": {
+                        "HotmLevel": 0,
+                        "gemstonePowder": 0,
+                        "mithrilPowder": 0
+                    },
+                    "slayers": {
+                        "zombie": 0,
+                        "spider": 0,
+                        "wolf": 0,
+                        "enderman": 0,
+                        "blaze": 0,
+                        "vampire": 0
+                    },
+                    "bank": 0,
+                    "purse": 105,
+                    "liquid": 105,
+                    "networth": 105,
+                    "unsoulboundNetworth": 105,
+                    "soulboundNetworth": 0,
+                    "members": 2,
+                    "gameMode": "ironman",
+                    "levels": "0.05"
+                },
+                "valuation": {
+                    "lowball": {
+                        "Fishing": "0.00",
+                        "Mining": "0.00",
+                        "Combat": "0.00",
+                        "Foraging": "0.00",
+                        "Taming": "0.00",
+                        "Enchanting": "0.00",
+                        "Alchemy": "0.00",
+                        "Carpentry": "0.00",
+                        "Runecrafting": "0.00",
+                        "Social": "0.00",
+                        "avg": "0.00",
+                        "skill_value": "0.00",
+                        "Catacombs Value": "0.00",
+                        "Hotm level value": "0.00",
+                        "gemstone": "0.00",
+                        "mithril": "0.00",
+                        "HOTM Value": "0.00",
+                        "Slayer Value": "0.00",
+                        "Liquid Coins Value": "0.00",
+                        "Unsoulbound Networth": "0.00",
+                        "Soulbound Networth": "0.00",
+                        "adjustment": "0.65",
+                        "gamemode adjustment": "0.45",
+                        "total value": "0.00"
+                    },
+                    "value": {
+                        "Fishing": "0.00",
+                        "Mining": "0.00",
+                        "Combat": "0.00",
+                        "Foraging": "0.00",
+                        "Taming": "0.00",
+                        "Enchanting": "0.00",
+                        "Alchemy": "0.00",
+                        "Carpentry": "0.00",
+                        "Runecrafting": "0.00",
+                        "Social": "0.00",
+                        "avg": "0.00",
+                        "skill_value": "0.00",
+                        "Catacombs Value": "0.00",
+                        "Hotm level value": "0.00",
+                        "gemstone": "0.00",
+                        "mithril": "0.00",
+                        "HOTM Value": "0.00",
+                        "Slayer Value": "0.00",
+                        "Liquid Coins Value": "0.00",
+                        "Unsoulbound Networth": "0.00",
+                        "Soulbound Networth": "0.00",
+                        "adjustment": "0.65",
+                        "gamemode adjustment": "0.5",
+                        "total value": "0.00"
+                    }
+                }
+            },
+            {
+                "Kiwi": {
+                    "catacombs": {
+                        "archer": 14,
+                        "mage": 17,
+                        "berserk": 19,
+                        "tank": 10,
+                        "healer": 11,
+                        "level": 21
+                    },
+                    "skills": {
+                        "Fishing": 19,
+                        "Mining": 25,
+                        "Combat": 26,
+                        "Foraging": 11,
+                        "Taming": 22,
+                        "Enchanting": 31,
+                        "Alchemy": 5,
+                        "Carpentry": 17,
+                        "Runecrafting": 7,
+                        "Social": 1,
+                        "avg": "19.00",
+                        "Farming": 15
+                    },
+                    "hotm": {
+                        "HotmLevel": 3,
+                        "gemstonePowder": 0,
+                        "mithrilPowder": 0
+                    },
+                    "slayers": {
+                        "zombie": 6,
+                        "spider": 3,
+                        "wolf": 3,
+                        "enderman": 1,
+                        "blaze": 0,
+                        "vampire": 0
+                    },
+                    "bank": 0,
+                    "purse": 4189657,
+                    "liquid": 4189657,
+                    "networth": 396564955,
+                    "unsoulboundNetworth": 396357955,
+                    "soulboundNetworth": 207000,
+                    "members": 3,
+                    "gameMode": "Normal",
+                    "levels": "80.10"
+                },
+                "valuation": {
+                    "lowball": {
+                        "Fishing": "0.02",
+                        "Mining": "0.76",
+                        "Combat": "0.51",
+                        "Foraging": "0.00",
+                        "Taming": "0.00",
+                        "Enchanting": "0.25",
+                        "Alchemy": "0.00",
+                        "Carpentry": "0.00",
+                        "Runecrafting": "0.00",
+                        "Social": "0.00",
+                        "avg": "0.00",
+                        "Farming": "0.02",
+                        "skill_value": "1.56",
+                        "Catacombs Value": "4.63",
+                        "Hotm level value": "2.25",
+                        "gemstone": "0.00",
+                        "mithril": "0.00",
+                        "HOTM Value": "2.25",
+                        "Slayer Value": "3.67",
+                        "Liquid Coins Value": "0.08",
+                        "Unsoulbound Networth": "6.74",
+                        "Soulbound Networth": "0.00",
+                        "adjustment": "0.55",
+                        "gamemode adjustment": "1",
+                        "total value": "10.41"
+                    },
+                    "value": {
+                        "Fishing": "0.03",
+                        "Mining": "0.95",
+                        "Combat": "0.68",
+                        "Foraging": "0.00",
+                        "Taming": "0.03",
+                        "Enchanting": "0.42",
+                        "Alchemy": "0.00",
+                        "Carpentry": "0.00",
+                        "Runecrafting": "0.00",
+                        "Social": "0.00",
+                        "avg": "0.00",
+                        "Farming": "0.02",
+                        "skill_value": "2.14",
+                        "Catacombs Value": "4.63",
+                        "Hotm level value": "3.86",
+                        "gemstone": "0.00",
+                        "mithril": "0.00",
+                        "HOTM Value": "3.86",
+                        "Slayer Value": "3.67",
+                        "Liquid Coins Value": "0.10",
+                        "Unsoulbound Networth": "8.72",
+                        "Soulbound Networth": "0.00",
+                        "adjustment": "0.55",
+                        "gamemode adjustment": "1",
+                        "total value": "12.71"
+                    }
+                }
+            },
+            {
+                "Peach": {
+                    "catacombs": {
+                        "archer": 0,
+                        "mage": 0,
+                        "berserk": 0,
+                        "tank": 0,
+                        "healer": 0,
+                        "level": 0
+                    },
+                    "skills": {
+                        "Fishing": 0,
+                        "Mining": 0,
+                        "Combat": 0,
+                        "Foraging": 0,
+                        "Taming": 0,
+                        "Enchanting": 0,
+                        "Alchemy": 0,
+                        "Carpentry": 0,
+                        "Runecrafting": 0,
+                        "Social": 0,
+                        "avg": 0
+                    },
+                    "hotm": {
+                        "HotmLevel": 0,
+                        "gemstonePowder": 0,
+                        "mithrilPowder": 0
+                    },
+                    "slayers": {
+                        "zombie": 1,
+                        "spider": 0,
+                        "wolf": 0,
+                        "enderman": 0,
+                        "blaze": 0,
+                        "vampire": 0
+                    },
+                    "bank": 0,
+                    "purse": 8737,
+                    "liquid": 8737,
+                    "networth": 259807,
+                    "unsoulboundNetworth": 259807,
+                    "soulboundNetworth": 0,
+                    "members": 1,
+                    "gameMode": "Normal",
+                    "levels": "19.80"
+                },
+                "valuation": {
+                    "lowball": {
+                        "Fishing": "0.00",
+                        "Mining": "0.00",
+                        "Combat": "0.00",
+                        "Foraging": "0.00",
+                        "Taming": "0.00",
+                        "Enchanting": "0.00",
+                        "Alchemy": "0.00",
+                        "Carpentry": "0.00",
+                        "Runecrafting": "0.00",
+                        "Social": "0.00",
+                        "avg": "0.00",
+                        "skill_value": "0.00",
+                        "Catacombs Value": "0.00",
+                        "Hotm level value": "0.00",
+                        "gemstone": "0.00",
+                        "mithril": "0.00",
+                        "HOTM Value": "0.00",
+                        "Slayer Value": "0.07",
+                        "Liquid Coins Value": "0.00",
+                        "Unsoulbound Networth": "0.00",
+                        "Soulbound Networth": "0.00",
+                        "adjustment": "1",
+                        "gamemode adjustment": "1",
+                        "total value": "0.07"
+                    },
+                    "value": {
+                        "Fishing": "0.00",
+                        "Mining": "0.00",
+                        "Combat": "0.00",
+                        "Foraging": "0.00",
+                        "Taming": "0.00",
+                        "Enchanting": "0.00",
+                        "Alchemy": "0.00",
+                        "Carpentry": "0.00",
+                        "Runecrafting": "0.00",
+                        "Social": "0.00",
+                        "avg": "0.00",
+                        "skill_value": "0.00",
+                        "Catacombs Value": "0.00",
+                        "Hotm level value": "0.00",
+                        "gemstone": "0.00",
+                        "mithril": "0.00",
+                        "HOTM Value": "0.00",
+                        "Slayer Value": "0.07",
+                        "Liquid Coins Value": "0.00",
+                        "Unsoulbound Networth": "0.01",
+                        "Soulbound Networth": "0.00",
+                        "adjustment": "1",
+                        "gamemode adjustment": "1",
+                        "total value": "0.07"
+                    }
+                }
+            }
+        ]
+    }
+}
