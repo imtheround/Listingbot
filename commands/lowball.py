@@ -89,20 +89,25 @@ class lowballCommand(commands.Cog):
         
 class DynamicButton(
     discord.ui.DynamicItem[discord.ui.Button],
-    template=r'username:(?P<username>[a-zA-Z0-9_]+):profile:(?P<profile>[a-zA-Z0-9]+)',
+    template=r'username:(?P<username>[a-zA-Z0-9_]+):profile:(?P<profile>[a-zA-Z0-9]+):usage:(?P<usage>[a-zA-Z0-9]+)',
    
 ):
 
-    def __init__(self, username: str = "", profile: str = "")-> None:
+    def __init__(self, username: str = "", profile: str = "", usage: str = "")-> None:
         self.user_id = user
         self.username: str = username
         self.profile = profile
+        self.usage = usage
+        if usage == "":
+            label = f"Details for {username}'s lowball"
+        elif usage == "listing":
+            label = f"View {username}'s lowball"
         stats = getStatsForCmd()
         super().__init__(
             discord.ui.Button(
                 label=f"Details for {username}'s lowball",
-                style=discord.ButtonStyle.primary,
-                custom_id=f"username:{username}:profile:{profile}"
+                style=discord.ButtonStyle.red,
+                custom_id=f"username:{username}:profile:{profile}:usage:{usage}"
                 #emoji='\N{THUMBS UP SIGN}',
             )
         )
@@ -111,7 +116,8 @@ class DynamicButton(
     async def from_custom_id(cls, interaction: discord.Interaction, item: discord.ui.Button, match: re.Match[str], /):
         username = match['username']
         profile = match['profile']
-        return cls(username, profile)
+        usage = match['usage']
+        return cls(username, profile, usage)
 
     
     async def callback(self, interaction: discord.Interaction) -> None:
