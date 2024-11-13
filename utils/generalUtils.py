@@ -29,3 +29,11 @@ class handleError():
                 }
             await session.post(webhook, json=webhookHeaders)
         return {"sucess": True, "cause": "ok"}
+    def format_large_number(self, number):
+        number = float(number)
+        suffixes = ["", "K", "M", "B", "T"]
+        index = 0
+        while abs(number) >= 1000 and index < len(suffixes) - 1:
+            number /= 1000
+            index += 1
+        return f"{number:.1f}{suffixes[index]}"

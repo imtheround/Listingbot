@@ -98,13 +98,13 @@ class dbStuff:
     async def set_listing_catergory(self, listing_category):
         async with aiosqlite.connect("database.db") as db:
             cursor = await db.cursor()
-            await cursor.execute("UPDATE listing SET category = ?", (listing_category,))
+            await cursor.execute("UPDATE listing SET id = ?", (listing_category,))
             await db.commit()
     async def get_listing_category(self):
         async with aiosqlite.connect("database.db") as db:
             cursor = await db.cursor()
             await cursor.execute("SELECT * FROM listing")
-            return await cursor.fetchone()
+            return await cursor.fetchall()
 
 
 async def setup(bot):

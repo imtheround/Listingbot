@@ -59,7 +59,8 @@ class fetchNetworth():
                     "soulboundNetworth": self.skyblocksoulboundNetworth,
                     "members": self.profilemembers,
                     "gameMode": self.profilegamemode,
-                    "levels": self.skyblockLevel
+                    "levels": self.skyblockLevel,
+                    'rank': self.rank,
                 },
                 "valuation": {
                     "lowball": self.lowballValue,
