@@ -5,7 +5,7 @@ import { getNetworth } from "skyhelper-networth";
 function getApiKey() {
   try {
     // Read the contents of the config.json file
-    const data = fs.readFileSync('config.json', 'utf8');
+    const data = fs.readFileSync('../config.json', 'utf8');
 
     // Parse the JSON data
     const config = JSON.parse(data);
@@ -31,7 +31,7 @@ let maxLvL = {
   Social: 25,
 };
 export default async function fetchStats(uuid, username) {
-  const key = "6c04d67a-d5cf-4244-946f-f64cdfff1969";
+  const key = getApiKey();
   if (!uuid) return;
   let promises = [];
   let stats = {

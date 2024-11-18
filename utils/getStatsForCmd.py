@@ -14,7 +14,7 @@ class getStatsForCmd:
             self.cached[username]
             if self.cached[username]['last_updated'] - datetime.datetime.timestamp(datetime.datetime.now()) < 1800:
                 stats = self.cached[username]
-                if profile == "":
+                if profile == "" or profile == "none":
                     stats = stats['profiles'][0]
                 else:
                     for i in range(len(stats['profiles'])):
@@ -32,7 +32,7 @@ class getStatsForCmd:
         uuid = await get_uuid(username,)
         if uuid == None:
             return {"sucess": False, "cause": "No UUID found, you sure this is a valid username?"}
-        if profile == "":
+        if profile == "" or profile == "none":
             stats = await data.get_data(uuid=uuid, username=username)
             if stats['sucess'] == False:
                 return  {"sucess": False, "cause": "No profile found, you sure this is a valid profile?"}

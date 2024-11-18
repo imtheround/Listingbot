@@ -58,13 +58,28 @@ class appointSeller(commands.Cog):
         await interaction.followup.send(f"Logs channel set to {channel.mention}", ephemeral=True)
     @discord.app_commands.command(name="setlistingcategory", description="Check if a owner exists")
     @discord.app_commands.describe(category="category")
-    async def setlistingcategory(self, interaction: discord.Interaction, category: str):
+    async def setlistingcategory(self, interaction: discord.Interaction, category: discord.CategoryChannel):
         if interaction.user.guild_permissions.administrator == False:
             await interaction.response.send_message("You don't have the required permissions to appoint a seller role", ephemeral=True)
             return
         await interaction.response.defer()
-        await self.db.set_listing_catergory(category)
+        await self.db.set_listing_catergory(category.id)
         await interaction.followup.send(f"Listing category set to {category}", ephemeral=True)  
+    @discord.app_commands.command(name="updateapikey", description="Check if a owner exists")
+    @discord.app_commands.describe(key="key")
+    async def setkey(self, interaction: discord.Interaction, key: str):
+        if interaction.user.guild_permissions.administrator == False:
+            await interaction.response.send_message("You don't have the required permissions", ephemeral=True)
+            return
+        await interaction.response.defer()
+        f = open("../config.json", "r")
+        config = json.load(f)
+        config["API_KEY"] = key
+        f.close()
+        f = open("../config.json", "w")
+        json.dump(config, f, indent=4)
+        f.close()
+        await interaction.followup.send(f"Done", ephemeral=True)
 async def setup(bot):
     await bot.add_cog(appointSeller(bot))
     

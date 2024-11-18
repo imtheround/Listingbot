@@ -33,7 +33,7 @@ class lowballCommand(commands.Cog):
     @discord.app_commands.command(name="lowball", description="get the lowball value of a specified Skyblock profile")
     @discord.app_commands.describe(username="The username of the player you want to get the lowball value of")
     @discord.app_commands.describe(profile="The profile you want to get the lowball value of")
-    async def lowball(self, interaction: discord.Interaction, username: str, profile: str = ""):
+    async def lowball(self, interaction: discord.Interaction, username: str, profile: str = "none"):
         profile = profile.capitalize()
         uuid = await get_uuid(username,)
         if uuid == "error":
@@ -59,10 +59,7 @@ class lowballCommand(commands.Cog):
             truenw = float(str(stats['valuation']['lowball']['Soulbound Networth']).replace(",", "")) + float(str(stats['valuation']['lowball']['Unsoulbound Networth']).replace(",", "")) - float(str(stats['valuation']['lowball']['Liquid Coins Value']).replace(",", ""))
             networth = f"**{round(truenw, 2)}$**"
             view = View(timeout=60)
-            if profile != "":
-                view.add_item(DynamicButton(username, profile))
-            else:
-                view.add_item(DynamicButton(username=username, profile="none"))
+            view.add_item(DynamicButton(username, profile, "foo"))
             embed = discord.Embed(
                 title=title,
                 color=discord.Color.pink(),
@@ -98,14 +95,18 @@ class DynamicButton(
         self.username: str = username
         self.profile = profile
         self.usage = usage
-        if usage == "":
-            label = f"Details for {username}'s lowball"
+        if usage == "foo":
+            title = f"Details for {username}'s lowball"
         elif usage == "listing":
-            label = f"View {username}'s lowball"
+            title = f"View {username}'s lowball"
+        elif usage == "listinganonymous":
+            title = f"View account's lowball"
+        else:
+            title = f"Details for {username}'s lowball"
         stats = getStatsForCmd()
         super().__init__(
             discord.ui.Button(
-                label=f"Details for {username}'s lowball",
+                label=title,
                 style=discord.ButtonStyle.red,
                 custom_id=f"username:{username}:profile:{profile}:usage:{usage}"
                 #emoji='\N{THUMBS UP SIGN}',
@@ -137,6 +138,8 @@ class DynamicButton(
             lowball = stats['valuation']['lowball']
             profileName = next(iter(stats.keys()))
             gamemode = stats[profileName]['gameMode']
+            if self.usage == "listinganonymous":
+                username = "anonymous"
             if gamemode == "Normal":
                 title = f"**Lowball for {username}**"
             elif gamemode == "ironman":
@@ -207,7 +210,12 @@ class DynamicButton(
     **{stats['valuation']['lowball']['Slayer Value']}$**
             """
             embed = discord.Embed(title=title, color=discord.Color.green(), timestamp=datetime.datetime.now())
-            embed.url = f"https://sky.shiiyu.moe/stats/{uuid}"
+            if self.usage == "listinganonymous":
+                embed.url = f"https://sky.shiiyu.moe/stats/round"
+                skinurl = f"https://mc-heads.net/body/anonymous/left"
+            else:
+                embed.url = f"https://sky.shiiyu.moe/stats/{uuid}"
+                skinurl = f"https://mc-heads.net/body/{uuid}/left"
             embed.add_field(name="", value=total_value, inline=False)
             embed.add_field(name="**Skills:**", value=skill, inline=True)
             embed.add_field(name="**Networth:**", value=coins, inline=True)
@@ -215,7 +223,7 @@ class DynamicButton(
             embed.add_field(name="**Slayers:**", value=slayer, inline=True)
             embed.add_field(name="**Catacombs:**", value=catacombs, inline=True)
             embed.add_field(name="**Adjustments:**", value=ajustment, inline=False)
-            embed.set_thumbnail(url=f"https://mc-heads.net/body/{uuid}/left")
+            embed.set_thumbnail(url=skinurl)
             embed.set_footer(text="Made by Totally_not_toxic (Round) with ♡", icon_url="https://cdn.discordapp.com/avatars/895394445195903047/d84af1c3e97bdb221e20f9c5aaad43db.png?size=1024")
             await interaction.followup.send(embed=embed, ephemeral=True)
         except Exception as e:
