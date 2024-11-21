@@ -9,7 +9,10 @@ class fetchNetworth():
         try:
             self.uuid = uuid
             self.profileStats = runJsFetchstat.run_js_fetchstat(username, self.uuid)
-            self.playerSocial = self.profileStats['social']
+            try:
+                self.playerSocial = self.profileStats['social']
+            except:
+                return {"sucess": False, "cause": "Api key exipred"}
             self.rank = self.profileStats['rank']
             self.profiles = []
             self.skyblockProfiles = []
@@ -61,10 +64,10 @@ class fetchNetworth():
                     "gameMode": self.profilegamemode,
                     "levels": self.skyblockLevel,
                     'rank': self.rank,
-                },
-                "valuation": {
-                    "lowball": self.lowballValue,
-                    "value": self.value
+                    "valuation": {
+                        "lowball": self.lowballValue,
+                        "value": self.value
+                    }
                 }
                 }
                 self.skyblockProfiles.append(self.profileStat)

@@ -32,7 +32,7 @@ class valueCommand(commands.Cog):
 
     @discord.app_commands.command(name="value", description="get the value value of a specified Skyblock profile")
     @discord.app_commands.describe(username="The username of the player you want to get the value value of")
-    @discord.app_commands.describe(profile="The profile you want to get the value value of")
+    @discord.app_commands.describe(profile="The profile you wa4nt to get the value value of")
     async def value(self, interaction: discord.Interaction, username: str, profile: str = ""):
         profile = profile.capitalize()
         uuid = await get_uuid(username,)
@@ -51,12 +51,12 @@ class valueCommand(commands.Cog):
                 title = f"**Value for {username}♻️**"
             else:
                 title = f"**Value for {username} in {gamemode}**"
-            catacombs = f"**{stats['valuation']['value']['Catacombs Value']}$**"
-            skills = f"**{stats['valuation']['value']['skill_value']}$**"
-            hotm = f"**{stats['valuation']['value']['HOTM Value']}$**"
-            total_value = f"**{str(round(float(stats['valuation']['value']['total value'].replace(",", "")), 2))}$**"
-            slayer = f"**{stats['valuation']['value']['Slayer Value']}$**"
-            truenw = float(str(stats['valuation']['value']['Soulbound Networth']).replace(",", "")) + float(str(stats['valuation']['value']['Unsoulbound Networth']).replace(",", "")) - float(str(stats['valuation']['value']['Liquid Coins Value']).replace(",", ""))
+            catacombs = f"**{stats[profileName]['valuation']['value']['Catacombs Value']}$**"
+            skills = f"**{stats[profileName]['valuation']['value']['skill_value']}$**"
+            hotm = f"**{stats[profileName]['valuation']['value']['HOTM Value']}$**"
+            total_value = f"**{str(round(float(stats[profileName]['valuation']['value']['total value'].replace(",", "")), 2))}$**"
+            slayer = f"**{stats[profileName]['valuation']['value']['Slayer Value']}$**"
+            truenw = float(str(stats[profileName]['valuation']['value']['Soulbound Networth']).replace(",", "")) + float(str(stats[profileName]['valuation']['value']['Unsoulbound Networth']).replace(",", "")) - float(str(stats[profileName]['valuation']['value']['Liquid Coins Value']).replace(",", ""))
             networth = f"**{round(truenw, 2)}$**"
             view = View(timeout=60)
             if profile != "":
@@ -124,12 +124,13 @@ class DynamicButton(
                 stats = await self.stats.get_stats(username=self.username, profile=self.profile)
             stats = await self.stats.get_stats(username=self.username)
             username = self.username
+            profileName = next(iter(stats.keys()))
             uuid = await get_uuid(username,)
             try:
-                stats['valuation']
+                stats[profileName]['valuation']
             except:
                 return await interaction.followup.send("No stats found for this user", ephemeral=True)
-            value = stats['valuation']['value']
+            value = stats[profileName]['valuation']['value']
             profileName = next(iter(stats.keys()))
             gamemode = stats[profileName]['gameMode']
             if gamemode == "Normal":
@@ -140,40 +141,40 @@ class DynamicButton(
                 title = f"**Value for {username} in {gamemode}**"
             coop = stats[profileName]['members']
             try:
-                farming = stats['valuation']['value']['Farming']
+                farming = stats[profileName]['valuation']['value']['Farming']
             except:
                 farming = 0
             try:
-                foraging = stats['valuation']['value']['Foraging']
+                foraging = stats[profileName]['valuation']['value']['Foraging']
             except:
                 foraging = 0
             try:
-                fishing = stats['valuation']['value']['Fishing']
+                fishing = stats[profileName]['valuation']['value']['Fishing']
             except:
                 fishing = 0
             try:
-                mining = stats['valuation']['value']['Mining']
+                mining = stats[profileName]['valuation']['value']['Mining']
             except:
                 mining = 0
             try:
-                combat = stats['valuation']['value']['Combat']
+                combat = stats[profileName]['valuation']['value']['Combat']
             except:
                 combat = 0
             try:
-                skill_value = stats['valuation']['value']['skill_value']
+                skill_value = stats[profileName]['valuation']['value']['skill_value']
             except:
                 skill_value = 0
             try:
-                hotm_value = stats['valuation']['value']['HOTM Value']
+                hotm_value = stats[profileName]['valuation']['value']['HOTM Value']
             except:
                 hotm_value = 0
             try:
-                slayer_value = stats['valuation']['value']['Slayer Value']
+                slayer_value = stats[profileName]['valuation']['value']['Slayer Value']
             except:
                 slayer_value = 0
             total_value = f"**Total Value:** {str(round(float(stats['valuation']['value']['total value'].replace(",", "")), 2))}$"
             skill = f"""
-    Total: **{stats['valuation']['value']['skill_value']}$**
+    Total: **{stats[profileName]['valuation']['value']['skill_value']}$**
     Fishing: **{fishing}$**
     Mining: **{mining}$**
     Combat: **{combat}$**
@@ -181,25 +182,25 @@ class DynamicButton(
     Farming: **{farming}$**
             """
             coins = f"""
-    Networth total: **{round(float(str(stats['valuation']['value']['Soulbound Networth']).replace(",", "")) + float(str(stats['valuation']['value']['Unsoulbound Networth']).replace(",", "")) - float(str(stats['valuation']['value']['Liquid Coins Value']).replace(",", "")))}$**
-    Soulbound: **{stats['valuation']['value']['Soulbound Networth']}$**
-    Unsoulbound: **{stats['valuation']['value']['Unsoulbound Networth']}$**
+    Networth total: **{round(float(str(stats[profileName]['valuation']['value']['Soulbound Networth']).replace(",", "")) + float(str(stats[profileName]['valuation']['value']['Unsoulbound Networth']).replace(",", "")) - float(str(stats[profileName]['valuation']['value']['Liquid Coins Value']).replace(",", "")))}$**
+    Soulbound: **{stats[profileName]['valuation']['value']['Soulbound Networth']}$**
+    Unsoulbound: **{stats[profileName]['valuation']['value']['Unsoulbound Networth']}$**
             """
             catacombs = f"""
-    **{stats['valuation']['value']['Catacombs Value']}$**
+    **{stats[profileName]['valuation']['value']['Catacombs Value']}$**
             """
             hotm = f"""
-    HOTM total: **{stats['valuation']['value']['HOTM Value']}$**
-    hotm level: **{stats['valuation']['value']['Hotm level value']}$**
-    Mithril Powder: **{stats['valuation']['value']['mithril']}$**
-    Gemstone Powder: **{stats['valuation']['value']['gemstone']}$**
+    HOTM total: **{stats[profileName]['valuation']['value']['HOTM Value']}$**
+    hotm level: **{stats[profileName]['valuation']['value']['Hotm level value']}$**
+    Mithril Powder: **{stats[profileName]['valuation']['value']['mithril']}$**
+    Gemstone Powder: **{stats[profileName]['valuation']['value']['gemstone']}$**
             """
             ajustment = f"""
-    Coop Ajustment: **x{stats['valuation']['value']['adjustment']}** ({coop} Coop members)
-    Game Mode Adjustment: **x{stats['valuation']['value']['gamemode adjustment']}** (Calculated after accounting for Coop )
+    Coop Ajustment: **x{stats[profileName]['valuation']['value']['adjustment']}** ({coop} Coop members)
+    Game Mode Adjustment: **x{stats[profileName]['valuation']['value']['gamemode adjustment']}** (Calculated after accounting for Coop )
             """
             slayer = f"""
-    **{stats['valuation']['value']['Slayer Value']}$**
+    **{stats[profileName]['valuation']['value']['Slayer Value']}$**
             """
             embed = discord.Embed(title=title, color=discord.Color.green(), timestamp=datetime.datetime.now())
             embed.url = f"https://sky.shiiyu.moe/stats/{uuid}"

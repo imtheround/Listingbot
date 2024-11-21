@@ -33,7 +33,7 @@ class lowballCommand(commands.Cog):
     @discord.app_commands.command(name="lowball", description="get the lowball value of a specified Skyblock profile")
     @discord.app_commands.describe(username="The username of the player you want to get the lowball value of")
     @discord.app_commands.describe(profile="The profile you want to get the lowball value of")
-    async def lowball(self, interaction: discord.Interaction, username: str, profile: str = "none"):
+    async def lowball(self, interaction: discord.Interaction, username: str, profile: str = ""):
         profile = profile.capitalize()
         uuid = await get_uuid(username,)
         if uuid == "error":
@@ -44,6 +44,7 @@ class lowballCommand(commands.Cog):
             stats = getStatsForCmd()
             stats = await stats.get_stats(username, profile)
             profileName = next(iter(stats.keys()))
+            lowball = stats[profileName]['valuation']['lowball']
             gamemode = f"{stats[profileName]['gameMode']}"
             if gamemode == "Normal":
                 title = f"**Lowball for {username} on {profileName}**"
@@ -51,15 +52,19 @@ class lowballCommand(commands.Cog):
                 title = f"**Lowball for {username}♻️**"
             else:
                 title = f"**Lowball for {username} in {gamemode}**"
-            catacombs = f"**{stats['valuation']['lowball']['Catacombs Value']}$**"
-            skills = f"**{stats['valuation']['lowball']['skill_value']}$**"
-            hotm = f"**{stats['valuation']['lowball']['HOTM Value']}$**"
-            total_value = f"**{str(round(float(stats['valuation']['lowball']['total value'].replace(",", "")), 2))}$**"
-            slayer = f"**{stats['valuation']['lowball']['Slayer Value']}$**"
-            truenw = float(str(stats['valuation']['lowball']['Soulbound Networth']).replace(",", "")) + float(str(stats['valuation']['lowball']['Unsoulbound Networth']).replace(",", "")) - float(str(stats['valuation']['lowball']['Liquid Coins Value']).replace(",", ""))
+            catacombs = f"**{lowball['Catacombs Value']}$**"
+            skills = f"**{lowball['skill_value']}$**"
+            hotm = f"**{lowball['HOTM Value']}$**"
+            total_value = f"**{str(round(float(lowball['total value'].replace(",", "")), 2))}$**"
+            slayer = f"**{lowball['Slayer Value']}$**"
+            truenw = float(str(lowball['Soulbound Networth']).replace(",", "")) + float(str(lowball['Unsoulbound Networth']).replace(",", "")) - float(str(lowball['Liquid Coins Value']).replace(",", ""))
             networth = f"**{round(truenw, 2)}$**"
             view = View(timeout=60)
-            view.add_item(DynamicButton(username, profile, "foo"))
+            if profile == "":
+                
+                view.add_item(DynamicButton(username, "none", "foo"))
+            else:
+                view.add_item(DynamicButton(username, profile, "foo"))
             embed = discord.Embed(
                 title=title,
                 color=discord.Color.pink(),
@@ -107,7 +112,7 @@ class DynamicButton(
         super().__init__(
             discord.ui.Button(
                 label=title,
-                style=discord.ButtonStyle.red,
+                style=discord.ButtonStyle.blurple,
                 custom_id=f"username:{username}:profile:{profile}:usage:{usage}"
                 #emoji='\N{THUMBS UP SIGN}',
             )
@@ -129,13 +134,14 @@ class DynamicButton(
                 stats = await self.stats.get_stats(username=self.username, profile="")
             else:
                 stats = await self.stats.get_stats(username=self.username, profile=self.profile)
+            profileName = next(iter(stats.keys()))
             username = self.username
             uuid = await get_uuid(username,)
             try:
-                stats['valuation']
+                stats[profileName]['valuation']
             except:
                 return await interaction.followup.send("No stats found for this user", ephemeral=True)
-            lowball = stats['valuation']['lowball']
+            lowball = stats[profileName]['valuation']['lowball']
             profileName = next(iter(stats.keys()))
             gamemode = stats[profileName]['gameMode']
             if self.usage == "listinganonymous":
@@ -148,40 +154,40 @@ class DynamicButton(
                 title = f"**Lowball for {username} in {gamemode}**"
             coop = stats[profileName]['members']
             try:
-                farming = stats['valuation']['lowball']['Farming']
+                farming = lowball['Farming']
             except:
                 farming = 0
             try:
-                foraging = stats['valuation']['lowball']['Foraging']
+                foraging = lowball['Foraging']
             except:
                 foraging = 0
             try:
-                fishing = stats['valuation']['lowball']['Fishing']
+                fishing = lowball['Fishing']
             except:
                 fishing = 0
             try:
-                mining = stats['valuation']['lowball']['Mining']
+                mining = lowball['Mining']
             except:
                 mining = 0
             try:
-                combat = stats['valuation']['lowball']['Combat']
+                combat = lowball['Combat']
             except:
                 combat = 0
             try:
-                skill_value = stats['valuation']['lowball']['skill_value']
+                skill_value = lowball['skill_value']
             except:
                 skill_value = 0
             try:
-                hotm_value = stats['valuation']['lowball']['HOTM Value']
+                hotm_value = lowball['HOTM Value']
             except:
                 hotm_value = 0
             try:
-                slayer_value = stats['valuation']['lowball']['Slayer Value']
+                slayer_value = lowball['Slayer Value']
             except:
                 slayer_value = 0
-            total_value = f"**Total Value:** {str(round(float(stats['valuation']['lowball']['total value'].replace(",", "")), 2))}$"
+            total_value = f"**Total Value:** {str(round(float(lowball['total value'].replace(",", "")), 2))}$"
             skill = f"""
-    Total: **{stats['valuation']['lowball']['skill_value']}$**
+    Total: **{lowball['skill_value']}$**
     Fishing: **{fishing}$**
     Mining: **{mining}$**
     Combat: **{combat}$**
@@ -189,25 +195,25 @@ class DynamicButton(
     Farming: **{farming}$**
             """
             coins = f"""
-    Networth total: **{round(float(str(stats['valuation']['lowball']['Soulbound Networth']).replace(",", "")) + float(str(stats['valuation']['lowball']['Unsoulbound Networth']).replace(",", "")) - float(str(stats['valuation']['lowball']['Liquid Coins Value']).replace(",", "")))}$**
-    Soulbound: **{stats['valuation']['lowball']['Soulbound Networth']}$**
-    Unsoulbound: **{stats['valuation']['lowball']['Unsoulbound Networth']}$**
+    Networth total: **{round(float(str(lowball['Soulbound Networth']).replace(",", "")) + float(str(lowball['Unsoulbound Networth']).replace(",", "")) - float(str(lowball['Liquid Coins Value']).replace(",", "")))}$**
+    Soulbound: **{lowball['Soulbound Networth']}$**
+    Unsoulbound: **{lowball['Unsoulbound Networth']}$**
             """
             catacombs = f"""
-    **{stats['valuation']['lowball']['Catacombs Value']}$**
+    **{lowball['Catacombs Value']}$**
             """
             hotm = f"""
-    HOTM total: **{stats['valuation']['lowball']['HOTM Value']}$**
-    hotm level: **{stats['valuation']['lowball']['Hotm level value']}$**
-    Mithril Powder: **{stats['valuation']['lowball']['mithril']}$**
-    Gemstone Powder: **{stats['valuation']['lowball']['gemstone']}$**
+    HOTM total: **{lowball['HOTM Value']}$**
+    hotm level: **{lowball['Hotm level value']}$**
+    Mithril Powder: **{lowball['mithril']}$**
+    Gemstone Powder: **{lowball['gemstone']}$**
             """
             ajustment = f"""
-    Coop Ajustment: **x{stats['valuation']['lowball']['adjustment']}** ({coop} Coop members)
-    Game Mode Adjustment: **x{stats['valuation']['lowball']['gamemode adjustment']}** (Calculated after accounting for Coop )
+    Coop Ajustment: **x{lowball['adjustment']}** ({coop} Coop members)
+    Game Mode Adjustment: **x{lowball['gamemode adjustment']}** (Calculated after accounting for Coop )
             """
             slayer = f"""
-    **{stats['valuation']['lowball']['Slayer Value']}$**
+    **{lowball['Slayer Value']}$**
             """
             embed = discord.Embed(title=title, color=discord.Color.green(), timestamp=datetime.datetime.now())
             if self.usage == "listinganonymous":

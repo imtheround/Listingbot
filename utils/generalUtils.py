@@ -37,3 +37,7 @@ class handleError():
             number /= 1000
             index += 1
         return f"{number:.1f}{suffixes[index]}"
+    def load_emojis(self):
+        with open("../emoji.json", "r") as f:
+            return json.loads(f.read())
+    

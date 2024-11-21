@@ -1,0 +1,110 @@
+{
+    "seller_role": {
+        "seller_role": 1302366359891607703
+    },
+    "jornaldo09": {
+        "Coconut": {
+            "catacombs": {
+                "archer": 0,
+                "mage": 0,
+                "berserk": 0,
+                "tank": 0,
+                "healer": 0,
+                "level": 0
+            },
+            "skills": {
+                "Fishing": 0,
+                "Mining": 23,
+                "Combat": 17,
+                "Foraging": 12,
+                "Taming": 18,
+                "Enchanting": 0,
+                "Alchemy": 3,
+                "Carpentry": 0,
+                "Runecrafting": 0,
+                "Social": 2,
+                "avg": "9.67",
+                "Farming": 14
+            },
+            "hotm": {
+                "HotmLevel": 0,
+                "gemstonePowder": 0,
+                "mithrilPowder": 0
+            },
+            "slayers": {
+                "zombie": 0,
+                "spider": 0,
+                "wolf": 0,
+                "enderman": 0,
+                "blaze": 0,
+                "vampire": 0
+            },
+            "bank": 0,
+            "purse": 728963984,
+            "liquid": 728963984,
+            "networth": 9670133297,
+            "unsoulboundNetworth": 5297302282,
+            "soulboundNetworth": 4372831015,
+            "members": 7,
+            "gameMode": "Normal",
+            "levels": "45.36",
+            "rank": "VIP"
+        },
+        "valuation": {
+            "lowball": {
+                "Fishing": "0.00",
+                "Mining": "0.35",
+                "Combat": "0.02",
+                "Foraging": "0.00",
+                "Taming": "0.00",
+                "Enchanting": "0.00",
+                "Alchemy": "0.00",
+                "Carpentry": "0.00",
+                "Runecrafting": "0.00",
+                "Social": "0.00",
+                "avg": "0.00",
+                "Farming": "0.01",
+                "skill_value": "0.38",
+                "Catacombs Value": "0.00",
+                "Hotm level value": "0.00",
+                "gemstone": "0.00",
+                "mithril": "0.00",
+                "HOTM Value": "0.00",
+                "Slayer Value": "0.00",
+                "Liquid Coins Value": "14.58",
+                "Unsoulbound Networth": "68.86",
+                "Soulbound Networth": "8.75",
+                "adjustment": "0.55",
+                "gamemode adjustment": "1",
+                "total value": "50.91"
+            },
+            "value": {
+                "Fishing": "0.00",
+                "Mining": "0.46",
+                "Combat": "0.02",
+                "Foraging": "0.00",
+                "Taming": "0.01",
+                "Enchanting": "0.00",
+                "Alchemy": "0.00",
+                "Carpentry": "0.00",
+                "Runecrafting": "0.00",
+                "Social": "0.00",
+                "avg": "0.00",
+                "Farming": "0.01",
+                "skill_value": "0.50",
+                "Catacombs Value": "0.00",
+                "Hotm level value": "0.00",
+                "gemstone": "0.00",
+                "mithril": "0.00",
+                "HOTM Value": "0.00",
+                "Slayer Value": "0.00",
+                "Liquid Coins Value": "18.22",
+                "Unsoulbound Networth": "116.54",
+                "Soulbound Networth": "13.12",
+                "adjustment": "0.55",
+                "gamemode adjustment": "1",
+                "total value": "81.61"
+            }
+        }
+    }
+}

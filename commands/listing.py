@@ -1,6 +1,8 @@
+from _typeshed import StrEnum
 import discord
 import re
 import datetime
+import random
 from discord.ui import Button, View, Modal, TextInput
 from discord.ext import commands
 from requests.api import options
@@ -53,20 +55,22 @@ class Listing(commands.Cog):
         if star == True:
             title = f"⭐{title}"
         listing_category = int(listing_category[0][0])
-        print(listing_category)
         listing_category = discord.utils.get(interaction.guild.categories, id=listing_category)
         if listing_category is None:
             listing_category = discord.utils.get(interaction.guild.categories, id=listing_category)
             if listing_category is None:
-                await interaction.followup.send("Something went wrong, either listing category wasn't set or discord isn't working properly. Wait a few minute before retrying.")
-        ticket_channel = await listing_category.create_text_channel(
-            name=title,
-            overwrites={
-                guild.default_role: discord.PermissionOverwrite(read_messages=False),
-                interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-                seller_role: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-            }
-        )
+                await interaction.followup.send("Something went wrong, either listing category wasn't set or discord isn't working properly. Wait a few minute before retrying.", ephemeral=True)
+        try:
+            ticket_channel = await listing_category.create_text_channel(
+                name=title,
+                overwrites={
+                    guild.default_role: discord.PermissionOverwrite(read_messages=False),
+                    interaction.user: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+                    seller_role: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+                }
+            )
+        except:
+            await interaction.followup.send("Something went wrong, either listing category wasn't set or discord isn't working properly. Wait a few minute before retrying.", ephemeral=True)
         self.username = username
         self.profile = profile
         self.stats = getStatsForCmd()
@@ -167,6 +171,8 @@ class Listing(commands.Cog):
         embed.set_footer(text="Made by Totally_not_toxic (Round) with ♡", icon_url="https://cdn.discordapp.com/avatars/895394445195903047/d84af1c3e97bdb221e20f9c5aaad43db.png?size=1024")
         view = View(timeout=None)
         view.add_item(Dynamicselect(username, profile))
+        view.add_item(OwnerButton(str(interaction.user.id)))
+        view.add_item
         if anonymous == True:
             usagee = "listinganonymous"
         else:
@@ -176,6 +182,14 @@ class Listing(commands.Cog):
         else:
             view.add_item(DynamicButton(username, "none", usagee))
         await ticket_channel.send(embed=embed, view=view)
+        listing = {
+            "id": str(random.randint(1000000, 9999999)),
+            "ownerid": str(interaction.user.id),
+            "channelid": str(ticket_channel.id),
+            "username": username,
+            "uuid": uuid
+        }
+        await dbStuff().save_listing(listing)
         embed2 = discord.Embed(
             title="**Listing Successful**",
             description=f"Listed your account in <#{ticket_channel.id}>",
@@ -183,10 +197,70 @@ class Listing(commands.Cog):
             timestamp=datetime.datetime.now(),
         )
         await interaction.followup.send(embed=embed2, ephemeral=True)
-        
-        
-        
 
+class unlist(
+    discord.ui.DynamicItem[discord.ui.Button],
+    template=r'id:(?P<id>[a-zA-Z0-9]+)',
+    
+):
+    def __init__(self, id: str = "")-> None:
+        self.owner = id
+        self.dbstuff = dbStuff()
+        super().__init__(
+            discord.ui.Button(
+                label="Unlist Owner",
+                style=discord.ButtonStyle.blurple,
+                custom_id=f"id:{id}",
+                emoji='🗑',
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(cls, interaction: discord.Interaction, item: discord.ui.Button, match: re.Match[str], /):
+        id = match['id']
+        return cls(id)
+
+    
+    async def callback(self, interaction: discord.Interaction) -> None:
+        channelid = await self.dbstuff.get_listing(self.owner)
+        if channelid is None:
+            await interaction.response.send_message("No listing found.", ephemeral=True)
+            return
+        channelid = channelid[0]
+        await self.dbstuff.remove_listing(self.owner)
+        channel = interaction.guild.get_channel(int(channelid))
+        await channel.delete()
+class OwnerButton(
+    discord.ui.DynamicItem[discord.ui.Button],
+    template=r'owner:(?P<owner>[a-zA-Z0-9_]+)',
+    
+):
+
+    def __init__(self, owner: str = "")-> None:
+        self.owner = owner
+        super().__init__(
+            discord.ui.Button(
+                label="Account Owner",
+                style=discord.ButtonStyle.blurple,
+                custom_id=f"owner:{owner}",
+                emoji='👤',
+            )
+        )
+
+    @classmethod
+    async def from_custom_id(cls, interaction: discord.Interaction, item: discord.ui.Button, match: re.Match[str], /):
+        owner = match['owner']
+        return cls(owner)
+
+    
+    async def callback(self, interaction: discord.Interaction) -> None:
+        embed = discord.Embed(
+            title="Account Owner",
+            description=f"<@{self.owner}>",
+            color=discord.Color.green(),
+            timestamp=datetime.datetime.now()
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 class Dynamicselect(
     discord.ui.DynamicItem[discord.ui.Select],
     template=r'username:(?P<username>[a-zA-Z0-9_]+):profile:(?P<profile>[a-zA-Z0-9]+)',
@@ -202,7 +276,7 @@ class Dynamicselect(
                 options=[
                     discord.SelectOption(label="Networth", value="Networth", emoji="<:1236756044588253184:1306809865318043719>"),
                     discord.SelectOption(label="Skills", emoji="<:1236755374254850099:1306809891767189616>", value="Skills"),
-                    discord.SelectOption(label="Mining", value="Mining", emoji="<:1236755797048823943:1306809794744815677>"),
+                    discord.SelectOption(label="Slayers", value="Slayers", emoji="<:1236756046098202625:1307528780889329675>"),
                 ],
                 placeholder="Stats breakdown",
                 max_values=1,
@@ -218,6 +292,8 @@ class Dynamicselect(
         return cls(username, profile)
     async def callback(self, interaction: discord.Interaction) -> None:
         await interaction.response.defer()
+        view = View(timeout=30)
+        view.add_item(Dynamicselect(self.username, self.profile))
         if self.item.values[0] == "Networth":
             stats = await self.stats.get_stats(self.username, self.profile)
             lowball = stats['valuation']['lowball']
@@ -231,7 +307,7 @@ class Dynamicselect(
             embed = discord.embeds.Embed(
                 title=title
             )
-            liquide = f"{self.utils.format_large_number(stats[profileName]['liquid'])}\n -> Bank: {self.utils.format_large_number(stats[profileName]['bank'])}\n -> Purse: {self.utils.format_large_number(stats[profileName]['purse'])}\n -> Value: {float(str(stats['valuation']['lowball']['Liquid Coins Value']).replace(",", ""))}$"
+            liquide = f"{self.utils.format_large_number(stats[profileName]['liquid'])}\n ↳ Bank: {self.utils.format_large_number(stats[profileName]['bank'])}\n ↳ Purse: {self.utils.format_large_number(stats[profileName]['purse'])}\n ↳ Value: {float(str(stats['valuation']['lowball']['Liquid Coins Value']).replace(",", ""))}$"
             soulbound = f"{self.utils.format_large_number(stats[profileName]['soulboundNetworth'])} ({stats['valuation']['lowball']['Soulbound Networth']}$)"
             unsoulbound = f"{self.utils.format_large_number(stats[profileName]['unsoulboundNetworth'])} ({stats['valuation']['lowball']['Unsoulbound Networth']}$)"
             totalnw = f"{self.utils.format_large_number(float(stats[profileName]['soulboundNetworth']) + float(stats[profileName]['unsoulboundNetworth']))} ({round(float(str(stats['valuation']['lowball']['Soulbound Networth']).replace(",", "")) + float(str(stats['valuation']['lowball']['Unsoulbound Networth']).replace(",", "")) - float(str(stats['valuation']['lowball']['Liquid Coins Value']).replace(",", "")))}$)" 
@@ -239,13 +315,14 @@ class Dynamicselect(
             embed.add_field(name="**<:1236756044588253184:1306809865318043719> Unsoulbound networth**", value=unsoulbound, inline=False)
             embed.add_field(name="**<:1236756044588253184:1306809865318043719> Soulbound networth**", value=soulbound, inline=False)
             embed.add_field(name="**Total**", value=totalnw)
-            await interaction.followup.send(embed=embed, ephemeral=True)
+            await interaction.followup.send(embed=embed, ephemeral=True, view=view)
         if self.item.values[0] == "Skills":
             stats = await self.stats.get_stats(self.username, self.profile)
             lowball = stats['valuation']['lowball']
             profileName = next(iter(stats.keys()))
             gamemode = stats[profileName]['gameMode']
             rank = stats[profileName]['rank'].lower()
+            emojis = self.utils.load_emojis()
             if gamemode == "ironman":
                 title=f"Account's skills details on {profileName} ♻️"
             else: 
@@ -253,7 +330,90 @@ class Dynamicselect(
             embed = discord.embeds.Embed(
                 title=title
             )
-        if self.item.values[0] == "Mining":
-            await interaction.response.send_message("Mining", ephemeral=True)
+            progression = calculate_skill_progression(stats[profileName]['skills'])
+            for key, value in progression.items():
+                if key == "avg" or key == "Social" or key == "Runecrafting":
+                    continue
+                worth = stats['valuation']['lowball'][key]
+                embed.add_field(name=f"{emojis[key]} {key}", value=f"{value}% to max level - value: {worth}$", inline=False)
+            await interaction.followup.send(embed=embed, ephemeral=True, view=view)
+        if self.item.values[0] == "Slayers":
+            stats = await self.stats.get_stats(self.username, self.profile)
+            profileName = next(iter(stats.keys()))
+            gamemode = stats[profileName]['gameMode']
+            if gamemode == "ironman":
+                title=f"Account's skills details on {profileName} ♻️"
+            else: 
+                title=f"Account's skills details on {profileName}"
+            slayer = f"{stats[profileName]['slayers']['zombie']}/{stats[profileName]['slayers']['spider']}/{stats[profileName]['slayers']['wolf']}/{stats[profileName]['slayers']['enderman']}/{stats[profileName]['slayers']['blaze']}/{stats[profileName]['slayers']['vampire']} "
+            embed = discord.Embed(
+                title=title,
+                color=discord.Color.green(),
+                timestamp=datetime.datetime.now()
+            )
+            embed.add_field(name="**Revenant Horror**", value=f"Level: {stats[profileName]['slayers']['zombie']}", inline=False)
+            embed.add_field(name="**Tarantula Broodmother**", value=f"Level: {stats[profileName]['slayers']['spider']}", inline=False)
+            embed.add_field(name="**Sven Packmaster**", value=f"Level: {stats[profileName]['slayers']['wolf']}", inline=False)
+            embed.add_field(name="**Voidgloom Seraphr**", value=f"Level: {stats[profileName]['slayers']['enderman']}", inline=False)
+            embed.add_field(name="**Inferno Demonlord**", value=f"Level: {stats[profileName]['slayers']['blaze']}", inline=False)
+            embed.add_field(name="**Riftstalker Bloodfiend**", value=f"Level: {stats[profileName]['slayers']['vampire']}", inline=False)
+            embed.set_footer(text="Yes I didnt't include emojis :D")
+            await interaction.followup.send(embed=embed, ephemeral=True, view=view)
+def calculate_skill_progression(player_levels):
+    exp = {
+        0: 0, 1: 50, 2: 175, 3: 375, 4: 675, 5: 1175, 6: 1925, 7: 2925, 8: 4425, 9: 6425,
+        10: 9925, 11: 14925, 12: 22425, 13: 32425, 14: 47425, 15: 67425, 16: 97425,
+        17: 147425, 18: 222425, 19: 322425, 20: 522425, 21: 822425, 22: 1222425,
+        23: 1722425, 24: 2322425, 25: 3022425, 26: 3822425, 27: 4722425, 28: 5722425,
+        29: 6822425, 30: 8022425, 31: 9322425, 32: 10722425, 33: 12222425, 34: 13822425,
+        35: 15522425, 36: 17322425, 37: 19222425, 38: 21222425, 39: 23322425, 40: 25522425,
+        41: 27822425, 42: 30222425, 43: 32722425, 44: 35322425, 45: 38072425, 46: 40972425,
+        47: 44072425, 48: 47472425, 49: 51172425, 50: 55172425
+    }
+    max_level_dict = {
+        "Fishing": 50,
+        "Mining": 60,
+        "Combat": 60,
+        "Foraging": 50,
+        "Taming": 51,
+        "Enchanting": 60,
+        "Alchemy": 50,
+        "Carpentry": 50,
+        "Runecrafting": 25,
+        "Farming": 50,
+    }
+    def scale_exp_dict(base_exp, target_max_level):
+        base_max_level = max(base_exp.keys())
+        scaled_exp = {}
+        for level in range(target_max_level + 1):
+            scaled_level = level * base_max_level / target_max_level
+            lower_level = int(scaled_level)
+            upper_level = min(lower_level + 1, base_max_level)
+            if lower_level == upper_level:
+                scaled_exp[level] = base_exp[lower_level]
+            else:
+                fraction = scaled_level - lower_level
+                exp = base_exp[lower_level] + fraction * (base_exp[upper_level] - base_exp[lower_level])
+                scaled_exp[level] = int(exp)
+        return scaled_exp
+
+    exp_dicts = {
+        skill: scale_exp_dict(exp, max_level)
+        for skill, max_level in max_level_dict.items()
+    }
+    progression = {}
+    for skill, level in player_levels.items():
+        if skill in exp_dicts:
+            exp_dict = exp_dicts[skill]
+            max_level = max(exp_dict.keys())
+            max_exp = exp_dict[max_level]
+            current_exp = exp_dict.get(level, 0)
+            progression[skill] = round((current_exp / max_exp) * 100, 2)
+        else:
+            progression[skill] = None  
+
+    return progression
+
+
 async def setup(bot: commands.Bot):
     await bot.add_cog(Listing(bot))

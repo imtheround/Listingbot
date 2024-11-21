@@ -17,10 +17,10 @@ async def calculate_value(skyblockCatacombs: dict, skyblockSkills: dict, skybloc
     }
     
     skill_values = {
-        "farming": 30,
-        "mining": 35,
-        "combat": 20,
-        "foraging": 20,
+        "farming": 25,
+        "mining": 30,
+        "combat": 17,
+        "foraging": 15,
         "fishing": 10,
         "enchanting": 5,
         "alchemy": 8,
@@ -125,10 +125,10 @@ async def calculate_lowball(skyblockCatacombs: dict, skyblockSkills: dict, skybl
     }
     
     skill_values = {
-        "farming": 25,
-        "mining": 28,
-        "combat": 15,
-        "foraging": 15,
+        "farming": 20,
+        "mining": 23,
+        "combat": 12,
+        "foraging": 12,
         "fishing": 7,
         "enchanting": 3,
         "alchemy": 5,
@@ -163,8 +163,8 @@ async def calculate_lowball(skyblockCatacombs: dict, skyblockSkills: dict, skybl
     # Calculate HOTM value
     hotm_value = skyblockHotm['HotmLevel'] * skyblockHotm['HotmLevel'] * skyblockHotm['HotmLevel'] / 12
     embed['Hotm level value'] = f"{hotm_value:,.2f}"
-    powder_value = skyblockHotm['gemstonePowder'] * 0.000001
-    mithril_value = skyblockHotm['mithrilPowder'] * 0.000001
+    powder_value = skyblockHotm['gemstonePowder'] * 0.0000015
+    mithril_value = skyblockHotm['mithrilPowder'] * 0.0000015
     embed['gemstone'] = f"{powder_value:,.2f}"
     embed['mithril'] = f"{mithril_value:,.2f}"
     hotm_value += powder_value + mithril_value
@@ -182,7 +182,7 @@ async def calculate_lowball(skyblockCatacombs: dict, skyblockSkills: dict, skybl
     embed["Liquid Coins Value"] = f"{liquid_coins_value:,.2f}"
 
     # Store the net worth values (unchanged)
-    unsoulbound_value = skyblockunsoulboundNetworth * 0.000000017
+    unsoulbound_value = skyblockunsoulboundNetworth * 0.000000013
     soulbound_value = skyblocksoulboundNetworth * 0.000000002
     embed["Unsoulbound Networth"] = f"{unsoulbound_value:,.2f}"
     embed["Soulbound Networth"] = f"{soulbound_value:,.2f}"

@@ -23,6 +23,7 @@ class getStatsForCmd:
                             break
                         if i == len(stats['profiles']):
                             return {"sucess": False, "cause": "No profile found, you sure this is a valid profile?"}
+                caching.save_cache(username, stats)
                 return stats
             else:
                 pass
@@ -35,18 +36,19 @@ class getStatsForCmd:
         if profile == "" or profile == "none":
             stats = await data.get_data(uuid=uuid, username=username)
             if stats['sucess'] == False:
-                return  {"sucess": False, "cause": "No profile found, you sure this is a valid profile?"}
+                return  {"sucess": False, "cause": stats['cause']}
             stats = stats['profiles'][0]
         else:
             stats = await data.get_data(uuid, username)
             if stats['sucess'] == False:
-                return  {"sucess": False, "cause": "No profile found, you sure this is a valid profile?"}
+                return  {"sucess": False, "cause": stats['cause']}
             self.cached[username] = stats
-            self.caching.save_cache(username, self.cached[username])
+            self.caching.save_cache(username, stats)
             for i in range(len(stats['profiles'])):
                 if next(iter(stats['profiles'][i].keys())) == profile:
                     stats = stats['profiles'][i]
                     break
                 if i == len(stats['profiles']):
                     return {"sucess": False, "cause": "No profile found, you sure this is a valid profile?"}
+        caching.save_cache(username, stats)
         return stats

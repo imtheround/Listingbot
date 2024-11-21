@@ -1,3 +1,4 @@
+from typing_extensions import Text
 import discord
 from discord.ext import commands
 
@@ -21,7 +22,7 @@ class ExampleCog(commands.Cog):
             description="`LWWFqe6RkmrMhz3oqGe4C9AmUHy6x6W8Dm`",
         )
         embed.set_footer(text="Send txid or sum after sent ty")
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(embed=embed, content="LWWFqe6RkmrMhz3oqGe4C9AmUHy6x6W8Dm")
         
 async def setup(bot: commands.Bot):
     await bot.add_cog(ExampleCog(bot))

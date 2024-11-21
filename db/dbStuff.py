@@ -1,3 +1,4 @@
+from typing_extensions import Text
 import aiosqlite
 import json
 import os
@@ -21,6 +22,7 @@ class dbStuff:
         await self.cursor.execute("CREATE TABLE IF NOT EXISTS verified (id TEXT PRIMARY KEY)")
         await self.cursor.execute("CREATE TABLE IF NOT EXISTS logs (id TEXT)")
         await self.cursor.execute("CREATE TABLE IF NOT EXISTS listing (id TEXT PRIMARY KEY)")
+        await self.cursor.execute("CREATE TABLE IF NOT EXISTS listingaccs (id TEXT PRIMARY KEY ownerid TEXT channelid TEXT username TEXT uuid TEXT)")  
         # Ensure the 'seller' table has at least one row with a TEXT value for 'id'
         await self.cursor.execute("SELECT COUNT(*) FROM seller")
         if (await self.cursor.fetchone())[0] == 0:
@@ -42,7 +44,26 @@ class dbStuff:
         await self.db.commit()
 
 
-
+    async def save_listing(self, listing: dict):
+        async with aiosqlite.connect("database.db") as db:
+            cursor = await db.cursor()
+            await cursor.execute("INSERT INTO listingaccs (id, ownerid, channelid, username, uuid) VALUES (?, ?, ?, ?, ?)", (listing['id'], listing['ownerid'], listing['channelid'], listing['username'], listing['uuid']))
+            await db.commit()
+    async def get_all_listing(self):
+        async with aiosqlite.connect("database.db") as db:
+            cursor = await db.cursor()
+            await cursor.execute("SELECT * FROM listingaccs")
+            return await cursor.fetchall()
+    async def get_listing(self, username):
+        async with aiosqlite.connect("database.db") as db:
+            cursor = await db.cursor()
+            await cursor.execute("SELECT * FROM listingaccs WHERE id = ?", (username,))
+            return await cursor.fetchone()
+    async def remove_listing(self, listing):
+        async with aiosqlite.connect("database.db") as db:
+            cursor = await db.cursor()
+            await cursor.execute("DELETE FROM listingaccs WHERE id = ?", (listing,))
+            await db.commit()
             
     async def set_seller_role(self, role_id):
         async with aiosqlite.connect("database.db") as db:
