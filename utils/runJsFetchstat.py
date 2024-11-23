@@ -16,9 +16,7 @@ def run_js_fetchstat(username, uuid) -> dict:
         output = json.loads(result.stdout)
         return output
     except subprocess.CalledProcessError as e:
-        print("JavaScript execution failed:", e.stderr)
-        return {"sucess": False, "cause": "JavaScript execution failed"}
+        return {"sucess": False, "cause": "JavaScript execution failed. (Most likely due to api key expiring)"}
     except json.JSONDecodeError:
-        print("Failed to parse JSON output from JavaScript.")
-        return {"sucess": False, "cause": "Failed to parse JSON output from JavaScript."}
+        return {"sucess": False, "cause": "Failed to parse JSON output from JavaScript. (Most likely due to api key expiring)"}
 

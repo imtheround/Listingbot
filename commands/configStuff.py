@@ -71,7 +71,7 @@ class appointSeller(commands.Cog):
         if interaction.user.guild_permissions.administrator == False:
             await interaction.response.send_message("You don't have the required permissions", ephemeral=True)
             return
-        await interaction.response.defer()
+        await interaction.response.defer(ephemeral=True)
         f = open("../config.json", "r")
         config = json.load(f)
         config["API_KEY"] = key
@@ -80,6 +80,7 @@ class appointSeller(commands.Cog):
         json.dump(config, f, indent=4)
         f.close()
         await interaction.followup.send(f"Done", ephemeral=True)
+        os.execv(sys.executable, [sys.executable] + sys.argv)
 async def setup(bot):
     await bot.add_cog(appointSeller(bot))
     

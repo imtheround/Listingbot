@@ -22,7 +22,7 @@ class dbStuff:
         await self.cursor.execute("CREATE TABLE IF NOT EXISTS verified (id TEXT PRIMARY KEY)")
         await self.cursor.execute("CREATE TABLE IF NOT EXISTS logs (id TEXT)")
         await self.cursor.execute("CREATE TABLE IF NOT EXISTS listing (id TEXT PRIMARY KEY)")
-        await self.cursor.execute("CREATE TABLE IF NOT EXISTS listingaccs (id TEXT PRIMARY KEY ownerid TEXT channelid TEXT username TEXT uuid TEXT)")  
+        await self.cursor.execute("CREATE TABLE IF NOT EXISTS listingaccs (id TEXT PRIMARY KEY, ownerid TEXT ,channelid TEXT ,username, TEXT ,uuid TEXT)")  
         # Ensure the 'seller' table has at least one row with a TEXT value for 'id'
         await self.cursor.execute("SELECT COUNT(*) FROM seller")
         if (await self.cursor.fetchone())[0] == 0:

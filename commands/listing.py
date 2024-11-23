@@ -1,4 +1,3 @@
-from _typeshed import StrEnum
 import discord
 import re
 import datetime
@@ -81,11 +80,12 @@ class Listing(commands.Cog):
         username = self.username
         uuid = await get_uuid(username,)
         try:
-            stats['valuation']
+            stats['sucess']
+            await interaction.followup.send("Something went wrong, either listing category wasn't set or discord isn't working properly. Wait a few minute before retrying.", ephemeral=True)
         except:
-            return await interaction.followup.send("No stats found for this user", ephemeral=True)
-        lowball = stats['valuation']['lowball']
+            pass
         profileName = next(iter(stats.keys()))
+        lowball = stats[profileName]['valuation']['lowball']
         gamemode = stats[profileName]['gameMode']
         rank = stats[profileName]['rank'].lower()
         if rank == "vip":
@@ -108,35 +108,35 @@ class Listing(commands.Cog):
             title = f"**{username}'s information**"
         coop = stats[profileName]['members']
         try:
-            farming = stats['valuation']['lowball']['Farming']
+            farming = lowball['Farming']
         except:
             farming = 0
         try:
-            foraging = stats['valuation']['lowball']['Foraging']
+            foraging = lowball['Foraging']
         except:
             foraging = 0
         try:
-            fishing = stats['valuation']['lowball']['Fishing']
+            fishing = lowball['Fishing']
         except:
             fishing = 0
         try:
-            mining = stats['valuation']['lowball']['Mining']
+            mining = lowball['Mining']
         except:
             mining = 0
         try:
-            combat = stats['valuation']['lowball']['Combat']
+            combat = lowball['Combat']
         except:
             combat = 0
         try:
-            skill_value = stats['valuation']['lowball']['skill_value']
+            skill_value = lowball['skill_value']
         except:
             skill_value = 0
         try:
-            hotm_value = stats['valuation']['lowball']['HOTM Value']
+            hotm_value = lowball['HOTM Value']
         except:
             hotm_value = 0
         try:
-            slayer_value = stats['valuation']['lowball']['Slayer Value']
+            slayer_value = lowball['Slayer Value']
         except:
             slayer_value = 0
         
@@ -296,8 +296,8 @@ class Dynamicselect(
         view.add_item(Dynamicselect(self.username, self.profile))
         if self.item.values[0] == "Networth":
             stats = await self.stats.get_stats(self.username, self.profile)
-            lowball = stats['valuation']['lowball']
             profileName = next(iter(stats.keys()))
+            lowval = stats[profileName]['valuation']['lowball']
             gamemode = stats[profileName]['gameMode']
             rank = stats[profileName]['rank'].lower()
             if gamemode == "ironman":
@@ -307,10 +307,10 @@ class Dynamicselect(
             embed = discord.embeds.Embed(
                 title=title
             )
-            liquide = f"{self.utils.format_large_number(stats[profileName]['liquid'])}\n ↳ Bank: {self.utils.format_large_number(stats[profileName]['bank'])}\n ↳ Purse: {self.utils.format_large_number(stats[profileName]['purse'])}\n ↳ Value: {float(str(stats['valuation']['lowball']['Liquid Coins Value']).replace(",", ""))}$"
-            soulbound = f"{self.utils.format_large_number(stats[profileName]['soulboundNetworth'])} ({stats['valuation']['lowball']['Soulbound Networth']}$)"
-            unsoulbound = f"{self.utils.format_large_number(stats[profileName]['unsoulboundNetworth'])} ({stats['valuation']['lowball']['Unsoulbound Networth']}$)"
-            totalnw = f"{self.utils.format_large_number(float(stats[profileName]['soulboundNetworth']) + float(stats[profileName]['unsoulboundNetworth']))} ({round(float(str(stats['valuation']['lowball']['Soulbound Networth']).replace(",", "")) + float(str(stats['valuation']['lowball']['Unsoulbound Networth']).replace(",", "")) - float(str(stats['valuation']['lowball']['Liquid Coins Value']).replace(",", "")))}$)" 
+            liquide = f"{self.utils.format_large_number(stats[profileName]['liquid'])}\n ↳ Bank: {self.utils.format_large_number(stats[profileName]['bank'])}\n ↳ Purse: {self.utils.format_large_number(stats[profileName]['purse'])}\n ↳ Value: {float(str(lowval['Liquid Coins Value']).replace(",", ""))}$"
+            soulbound = f"{self.utils.format_large_number(stats[profileName]['soulboundNetworth'])} ({lowval['Soulbound Networth']}$)"
+            unsoulbound = f"{self.utils.format_large_number(stats[profileName]['unsoulboundNetworth'])} ({lowval['Unsoulbound Networth']}$)"
+            totalnw = f"{self.utils.format_large_number(float(stats[profileName]['soulboundNetworth']) + float(stats[profileName]['unsoulboundNetworth']))} ({round(float(str(lowval['Soulbound Networth']).replace(",", "")) + float(str(lowval['Unsoulbound Networth']).replace(",", "")) - float(str(stats['valuation']['lowball']['Liquid Coins Value']).replace(",", "")))}$)" 
             embed.add_field(name="**<:1236755419221987328:1306809621549420574> Liquid**", value=liquide)
             embed.add_field(name="**<:1236756044588253184:1306809865318043719> Unsoulbound networth**", value=unsoulbound, inline=False)
             embed.add_field(name="**<:1236756044588253184:1306809865318043719> Soulbound networth**", value=soulbound, inline=False)
@@ -334,7 +334,7 @@ class Dynamicselect(
             for key, value in progression.items():
                 if key == "avg" or key == "Social" or key == "Runecrafting":
                     continue
-                worth = stats['valuation']['lowball'][key]
+                worth = stats[profileName]['valuation']['lowball'][key]
                 embed.add_field(name=f"{emojis[key]} {key}", value=f"{value}% to max level - value: {worth}$", inline=False)
             await interaction.followup.send(embed=embed, ephemeral=True, view=view)
         if self.item.values[0] == "Slayers":
@@ -408,9 +408,6 @@ def calculate_skill_progression(player_levels):
             max_level = max(exp_dict.keys())
             max_exp = exp_dict[max_level]
             current_exp = exp_dict.get(level, 0)
-            progression[skill] = round((current_exp / max_exp) * 100, 2)
-        else:
-            progression[skill] = None  
 
     return progression
 

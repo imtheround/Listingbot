@@ -10,9 +10,10 @@ class fetchNetworth():
             self.uuid = uuid
             self.profileStats = runJsFetchstat.run_js_fetchstat(username, self.uuid)
             try:
-                self.playerSocial = self.profileStats['social']
+                cause = self.profileStats['cause']
+                return self.profileStats
             except:
-                return {"sucess": False, "cause": "Api key exipred"}
+                pass
             self.rank = self.profileStats['rank']
             self.profiles = []
             self.skyblockProfiles = []
