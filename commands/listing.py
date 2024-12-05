@@ -310,7 +310,7 @@ class Dynamicselect(
             liquide = f"{self.utils.format_large_number(stats[profileName]['liquid'])}\n ↳ Bank: {self.utils.format_large_number(stats[profileName]['bank'])}\n ↳ Purse: {self.utils.format_large_number(stats[profileName]['purse'])}\n ↳ Value: {float(str(lowval['Liquid Coins Value']).replace(",", ""))}$"
             soulbound = f"{self.utils.format_large_number(stats[profileName]['soulboundNetworth'])} ({lowval['Soulbound Networth']}$)"
             unsoulbound = f"{self.utils.format_large_number(stats[profileName]['unsoulboundNetworth'])} ({lowval['Unsoulbound Networth']}$)"
-            totalnw = f"{self.utils.format_large_number(float(stats[profileName]['soulboundNetworth']) + float(stats[profileName]['unsoulboundNetworth']))} ({round(float(str(lowval['Soulbound Networth']).replace(",", "")) + float(str(lowval['Unsoulbound Networth']).replace(",", "")) - float(str(stats['valuation']['lowball']['Liquid Coins Value']).replace(",", "")))}$)" 
+            totalnw = f"{self.utils.format_large_number(float(stats[profileName]['soulboundNetworth']) + float(stats[profileName]['unsoulboundNetworth']))} ({round(float(str(lowval['Soulbound Networth']).replace(",", "")) + float(str(lowval['Unsoulbound Networth']).replace(",", "")) - float(str(lowval['Liquid Coins Value']).replace(",", "")))}$)" 
             embed.add_field(name="**<:1236755419221987328:1306809621549420574> Liquid**", value=liquide)
             embed.add_field(name="**<:1236756044588253184:1306809865318043719> Unsoulbound networth**", value=unsoulbound, inline=False)
             embed.add_field(name="**<:1236756044588253184:1306809865318043719> Soulbound networth**", value=soulbound, inline=False)

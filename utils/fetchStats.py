@@ -15,6 +15,7 @@ class fetchNetworth():
             except:
                 pass
             self.rank = self.profileStats['rank']
+            self.playerSocial = self.profileStats['social']
             self.profiles = []
             self.skyblockProfiles = []
             for i in range(len(self.profileStats['skyblock'])):

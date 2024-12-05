@@ -1,0 +1,8 @@
+
+[2024-11-24 19:13:46.590405] Error: 
+Traceback (most recent call last):
+  File "/home/round/projects/ListingBot/utils/fetchStats.py", line 77, in get_data
+    "social": self.playerSocial,
+              ^^^^^^^^^^^^^^^^^
+AttributeError: 'fetchNetworth' object has no attribute 'playerSocial'
+ while running in fetchStats.py

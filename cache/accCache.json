@@ -1,1 +1,110 @@
-{}
+{
+    "seller_role": {
+        "seller_role": 1302366359891607703
+    },
+    "refraction": {
+        "Apple": {
+            "catacombs": {
+                "archer": 45,
+                "mage": 43,
+                "berserk": 48,
+                "tank": 45,
+                "healer": 43,
+                "level": 51
+            },
+            "skills": {
+                "Fishing": 50,
+                "Mining": 60,
+                "Combat": 60,
+                "Foraging": 50,
+                "Taming": 51,
+                "Enchanting": 60,
+                "Alchemy": 50,
+                "Carpentry": 50,
+                "Runecrafting": 25,
+                "Social": 13,
+                "avg": "54.56",
+                "Farming": 60
+            },
+            "hotm": {
+                "HotmLevel": 7,
+                "gemstonePowder": 6309047,
+                "mithrilPowder": 8372343
+            },
+            "slayers": {
+                "zombie": 9,
+                "spider": 9,
+                "wolf": 9,
+                "enderman": 9,
+                "blaze": 9,
+                "vampire": 5
+            },
+            "bank": 1000939244,
+            "purse": 3629161046,
+            "liquid": 4630100290,
+            "networth": 401767011120,
+            "unsoulboundNetworth": 294548736987,
+            "soulboundNetworth": 107218274133,
+            "members": 9,
+            "gameMode": "Normal",
+            "levels": "441.23",
+            "rank": "YOUTUBER",
+            "valuation": {
+                "lowball": {
+                    "Fishing": "3.46",
+                    "Mining": "23.00",
+                    "Combat": "12.00",
+                    "Foraging": "5.93",
+                    "Taming": "0.00",
+                    "Enchanting": "3.00",
+                    "Alchemy": "2.47",
+                    "Carpentry": "0.00",
+                    "Runecrafting": "0.00",
+                    "Social": "0.00",
+                    "avg": "0.00",
+                    "Farming": "20.00",
+                    "skill_value": "69.86",
+                    "Catacombs Value": "66.33",
+                    "Hotm level value": "28.58",
+                    "gemstone": "9.46",
+                    "mithril": "12.56",
+                    "HOTM Value": "50.61",
+                    "Slayer Value": "28.67",
+                    "Liquid Coins Value": "92.60",
+                    "Unsoulbound Networth": "3,829.13",
+                    "Soulbound Networth": "214.44",
+                    "adjustment": "0.55",
+                    "gamemode adjustment": "1",
+                    "total value": "2,393.39"
+                },
+                "value": {
+                    "Fishing": "4.94",
+                    "Mining": "30.00",
+                    "Combat": "17.00",
+                    "Foraging": "7.41",
+                    "Taming": "1.60",
+                    "Enchanting": "5.00",
+                    "Alchemy": "3.95",
+                    "Carpentry": "1.48",
+                    "Runecrafting": "0.00",
+                    "Social": "0.00",
+                    "avg": "0.00",
+                    "Farming": "25.00",
+                    "skill_value": "96.38",
+                    "Catacombs Value": "66.33",
+                    "Hotm level value": "49.00",
+                    "gemstone": "3.15",
+                    "mithril": "4.19",
+                    "HOTM Value": "56.34",
+                    "Slayer Value": "28.67",
+                    "Liquid Coins Value": "115.75",
+                    "Unsoulbound Networth": "6,480.07",
+                    "Soulbound Networth": "321.65",
+                    "adjustment": "0.55",
+                    "gamemode adjustment": "1",
+                    "total value": "3,940.86"
+                }
+            }
+        }
+    }
+}
