@@ -6,9 +6,9 @@ from typing import TYPE_CHECKING
 
 from fastapi import APIRouter
 
+import autosecure.core.database as _db
+import autosecure.core.redis as _redis
 from autosecure.api.models.common import HealthResponse
-from autosecure.core.database import session_factory
-from autosecure.core.redis import redis_pool
 from autosecure.core.state import state
 
 if TYPE_CHECKING:
@@ -23,8 +23,8 @@ async def health_check() -> HealthResponse:
     checks: dict[str, bool] = {}
 
     try:
-        if session_factory is not None:
-            async with session_factory() as session:
+        if _db.session_factory is not None:
+            async with _db.session_factory() as session:
                 await session.execute(__import__("sqlalchemy").text("SELECT 1"))
             checks["database"] = True
         else:
@@ -33,8 +33,8 @@ async def health_check() -> HealthResponse:
         checks["database"] = False
 
     try:
-        if redis_pool is not None:
-            await redis_pool.ping()
+        if _redis.redis_pool is not None:
+            await _redis.redis_pool.ping()
             checks["redis"] = True
         else:
             checks["redis"] = False
