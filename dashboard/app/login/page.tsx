@@ -28,7 +28,7 @@ export default function LoginPage() {
       }
       const data = await res.json();
       localStorage.setItem("access_token", data.access_token);
-      localStorage.setItem("refresh_token", data.refresh_token);
+      document.cookie = "auth_token=" + data.access_token + "; path=/; max-age=86400; SameSite=Lax";
       router.push("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");

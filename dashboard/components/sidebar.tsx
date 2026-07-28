@@ -1,8 +1,8 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Users, Bot, Key, Mail, Settings, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Users, Bot, Key, Mail, Settings, ShieldCheck, LogOut } from "lucide-react";
 
 const nav = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
@@ -15,6 +15,8 @@ const nav = [
 
 export function Sidebar() {
   const p = usePathname();
+  const r = useRouter();
+  const logout = () => { document.cookie = "auth_token=; path=/; max-age=0"; localStorage.clear(); r.push("/login"); };
   return (
     <aside className="fixed left-0 top-0 z-40 flex h-screen w-56 flex-col border-r border-border bg-card">
       <div className="flex h-12 items-center gap-2 border-b border-border px-5">
@@ -40,7 +42,10 @@ export function Sidebar() {
           );
         })}
       </nav>
-      <div className="border-t border-border p-3">
+      <div className="border-t border-border p-3 space-y-2">
+        <button onClick={logout} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors w-full">
+          <LogOut className="h-3 w-3" /> Sign Out
+        </button>
         <p className="text-xs text-muted-foreground">v1.0.0</p>
       </div>
     </aside>
