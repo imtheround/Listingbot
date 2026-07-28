@@ -5,7 +5,7 @@ from __future__ import annotations
 import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import JSON, DateTime, String, func
+from sqlalchemy import JSON, DateTime, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from autosecure.models import Base, EncryptedString
@@ -51,7 +51,7 @@ class AccountByUser(Base):
 
     __tablename__ = "accountsbyuser"
 
-    uid: Mapped[str] = mapped_column(String, primary_key=True)
+    uid: Mapped[str] = mapped_column(String, ForeignKey("accounts.uid"), primary_key=True)
     user_id: Mapped[str] = mapped_column(String, index=True)
 
     # Relationships
