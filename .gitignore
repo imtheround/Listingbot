@@ -1,0 +1,36 @@
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.venv/
+venv/
+env/
+.env
+*.log
+*.err
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+.next/
+out/
+.env.local
+*.tsbuildinfo
+next-env.d.ts
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build
+*.so
+*.dylib
+notcool/
+notcool.zip

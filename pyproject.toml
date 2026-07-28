@@ -1,0 +1,82 @@
+[project]
+name = "autosecure"
+version = "1.0.0"
+description = "AutoSecure - Microsoft/Minecraft Account Security Platform"
+requires-python = ">=3.11"
+license = {text = "Proprietary"}
+
+dependencies = [
+    "discord.py>=2.4.0",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.34.0",
+    "jinja2>=3.1.0",
+    "python-multipart>=0.0.18",
+    "itsdangerous>=2.2.0",
+    "sqlalchemy[asyncio]>=2.0.0",
+    "asyncpg>=0.30.0",
+    "alembic>=1.14.0",
+    "redis[hiredis]>=5.0.0",
+    "pyjwt>=2.10.0",
+    "passlib[bcrypt]>=1.7.4",
+    "cryptography>=44.0.0",
+    "httpx>=0.28.0",
+    "bip39>=0.0.1",
+    "coincurve>=20.0.0",
+    "Pillow>=11.0.0",
+    "aiosmtpd>=1.4.0",
+    "pyyaml>=6.0.0",
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.10.0",
+    "email-validator>=2.0.0",
+    "pydantic-settings>=2.7.0",
+    "structlog>=24.0.0",
+    "apscheduler>=3.10.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.25.0",
+    "ruff>=0.8.0",
+    "mypy>=1.14.0",
+    "pre-commit>=4.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "A", "SIM", "TCH"]
+
+[tool.ruff.lint.per-file-ignores]
+"autosecure/models/*.py" = ["TCH003"]
+"autosecure/core/exceptions.py" = ["N818"]
+"autosecure/core/deps.py" = ["B008"]
+"autosecure/api/auth.py" = ["B008", "E501"]
+"autosecure/api/routes/v1/licenses.py" = ["B008"]
+"autosecure/db/embeds.py" = ["A002"]
+"autosecure/services/email/smtp_server.py" = ["N802", "N811"]
+"autosecure/services/hypixel/duels.py" = ["N815"]
+"autosecure/services/microsoft/auth.py" = ["N815", "N806", "E501"]
+"autosecure/services/microsoft/_http.py" = ["E501"]
+"autosecure/services/minecraft/auth.py" = ["E501"]
+"autosecure/core/config.py" = ["E501"]
+"autosecure/core/logging.py" = ["E501"]
+"autosecure/core/middleware.py" = ["E501"]
+"autosecure/bot/controller/client.py" = ["E501"]
+"autosecure/bot/controller/commands/accounts.py" = ["E501"]
+"autosecure/ui/defaults.py" = ["E501"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy", "sqlalchemy.ext.mypy.plugin"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

