@@ -13,14 +13,14 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className="dark">
       <body className={inter.className}>
         <Providers>
-          <div className="flex min-h-screen">
+          <div className="flex min-h-screen bg-background">
             <Sidebar />
             <main className="flex-1 pl-56">
-              <div className="h-12 border-b bg-white flex items-center px-6">
-                <span className="text-xs text-muted-foreground">AutoSecure Dashboard</span>
+              <div className="h-12 border-b border-border bg-card flex items-center px-6">
+                <span className="text-xs text-muted-foreground font-mono">autosecure.api</span>
               </div>
               <div className="p-6">{children}</div>
             </main>
