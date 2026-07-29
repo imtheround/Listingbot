@@ -9,6 +9,57 @@ export interface LoginResponse {
   expires_in: number;
 }
 
+// --- User ---
+export interface UserProfile {
+  user_id: string;
+  google_id: string | null;
+  email: string | null;
+  name: string;
+  avatar_url: string;
+  role: "user" | "admin" | "banned";
+  is_banned: boolean;
+  ban_reason: string | null;
+  banned_at: string | null;
+  banned_by: string | null;
+  email_verified: boolean;
+  last_login_at: string | null;
+  last_login_ip: string | null;
+  login_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// --- Purchase ---
+export interface Purchase {
+  id: number;
+  user_id: string;
+  order_id: string;
+  plan: "monthly" | "yearly" | "lifetime";
+  price_usd: number;
+  currency_paid: string;
+  amount_paid: number;
+  status: "pending" | "paid" | "expired" | "failed";
+  np_invoice_id: string | null;
+  license_key: string | null;
+  created_at: string;
+  paid_at: string | null;
+}
+
+export interface PurchaseListResponse {
+  purchases: Purchase[];
+  total: number;
+}
+
+export interface CreateInvoiceRequest {
+  plan: "monthly" | "yearly" | "lifetime";
+  hcaptcha_token: string;
+}
+
+export interface CreateInvoiceResponse {
+  invoice_url: string;
+  order_id: string;
+}
+
 // --- Accounts ---
 export interface AccountResponse {
   uid: string;

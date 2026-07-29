@@ -1,6 +1,7 @@
 """Database repository package for AutoSecure."""
 
 from autosecure.db.accounts import AccountRepo
+from autosecure.db.billing import PurchaseRepo
 from autosecure.db.blacklist import BlacklistRepo
 from autosecure.db.bots import BotRepo
 from autosecure.db.emails import EmailRepo
@@ -19,6 +20,7 @@ __all__ = [
     "EmbedRepo",
     "LeaderboardRepo",
     "LicenseRepo",
+    "PurchaseRepo",
     "QuarantineRepo",
     "SettingsRepo",
     "UserRepo",

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 from typing import Annotated
 
 import jwt
@@ -11,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from autosecure.core.config import settings
 from autosecure.core.database import get_db
 from autosecure.core.exceptions import Unauthorized
+from autosecure.core.permissions import is_banned
 from autosecure.core.state import state
 from autosecure.db.users import UserRepo
 
@@ -72,12 +74,12 @@ async def require_owner(
     user_id: Annotated[str, Depends(get_current_user_id)],
     db: AsyncSession = Depends(get_db),
 ) -> str:
-    """Require the user to be an owner (config list or DB role='owner')."""
+    """Require the user to be an owner (config list or DB role='admin')."""
     if state.is_owner(user_id):
         return user_id
     repo = UserRepo(db)
     user = await repo.get(user_id)
-    if user and user.permissions.get("role") == "owner":
+    if user and user.role == "admin":
         return user_id
     raise HTTPException(status_code=403, detail="Owner access required")
 
@@ -94,9 +96,44 @@ async def require_active_license(
     return user_id
 
 
+async def get_current_user(
+    user_id: Annotated[str, Depends(get_current_user_id)],
+    db: AsyncSession = Depends(get_db),
+) -> "autosecure.models.user.User":
+    """Return the full User ORM object for the authenticated user."""
+    repo = UserRepo(db)
+    user = await repo.get(user_id)
+    if user is None:
+        raise Unauthorized("User not found")
+    if user.is_banned or is_banned(user.role):
+        raise HTTPException(status_code=403, detail="Account is banned")
+    return user
+
+
+async def require_admin(
+    user: Annotated["autosecure.models.user.User", Depends(get_current_user)],
+) -> "autosecure.models.user.User":
+    """Require the user to be an admin or owner."""
+    if state.is_owner(user.user_id) or user.role == "admin":
+        return user
+    raise HTTPException(status_code=403, detail="Admin access required")
+
+
+async def require_not_banned(
+    user: Annotated["autosecure.models.user.User", Depends(get_current_user)],
+) -> "autosecure.models.user.User":
+    """Require the user to not be banned. Returns the User ORM object."""
+    if user.is_banned or is_banned(user.role):
+        raise HTTPException(status_code=403, detail="Account is banned")
+    return user
+
+
 # Type aliases for FastAPI dependencies
 DBSession = Annotated[AsyncSession, Depends(get_db)]
 CurrentUser = Annotated[str, Depends(get_current_user_id)]
 OptionalUser = Annotated[str | None, Depends(get_optional_user_id)]
 OwnerUser = Annotated[str, Depends(require_owner)]
 LicensedUser = Annotated[str, Depends(require_active_license)]
+AdminUser = Annotated["autosecure.models.user.User", Depends(require_admin)]
+NotBannedUser = Annotated["autosecure.models.user.User", Depends(require_not_banned)]
+FullUser = Annotated["autosecure.models.user.User", Depends(get_current_user)]

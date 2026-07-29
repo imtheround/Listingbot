@@ -3,8 +3,8 @@
 
 # hCaptcha Verification
 hcaptcha:
-  site_key: ""              # Set in .env
-  secret_key: ""            # Set in .env
+  site_key: ""              # Set in .env (AUTOSECURE_HCAPTCHA__SITE_KEY)
+  secret_key: ""            # Set in .env (AUTOSECURE_HCAPTCHA__SECRET_KEY)
   verify_url: "https://api.hcaptcha.com/siteverify"
   enabled: true
 

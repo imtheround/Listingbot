@@ -81,6 +81,23 @@ class SecurityConfig(BaseSettings):
     session_secret: str = ""
 
 
+class HcaptchaConfig(BaseSettings):
+    site_key: str = ""
+    secret_key: str = ""
+    verify_url: str = "https://api.hcaptcha.com/siteverify"
+    enabled: bool = True
+
+
+class SecurityDetectorConfig(BaseSettings):
+    rate_limit_per_minute: int = 100
+    rate_limit_block_minutes: int = 15
+    login_burst_max: int = 5
+    login_burst_window_minutes: int = 10
+    login_burst_block_minutes: int = 30
+    bot_block_minutes: int = 30
+    session_hijack_window_seconds: int = 300
+
+
 class MicrosoftConfig(BaseSettings):
     auth_url: str = "https://login.live.com/ppsecure/post.srf"
     redirect_uri: str = "https://www.xbox.com/auth/msa/blank.html"
@@ -151,6 +168,8 @@ class Settings(BaseSettings):
     database: DatabaseConfig = Field(default_factory=DatabaseConfig)
     redis: RedisConfig = Field(default_factory=RedisConfig)
     security: SecurityConfig = Field(default_factory=SecurityConfig)
+    hcaptcha: HcaptchaConfig = Field(default_factory=HcaptchaConfig)
+    security_detector: SecurityDetectorConfig = Field(default_factory=SecurityDetectorConfig)
     microsoft: MicrosoftConfig = Field(default_factory=MicrosoftConfig)
     apis: APIsConfig = Field(default_factory=APIsConfig)
     http: HTTPConfig = Field(default_factory=HTTPConfig)

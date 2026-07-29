@@ -58,6 +58,7 @@ from autosecure.models.account import Account, AccountByUser  # noqa: E402
 from autosecure.models.audit import AuditLog  # noqa: E402
 from autosecure.models.blacklist import Blacklisted, BlacklistedEmail  # noqa: E402
 from autosecure.models.bot import AutoSecure, SecureConfig  # noqa: E402
+from autosecure.models.billing import Purchase  # noqa: E402
 from autosecure.models.email import Email, EmailNotifier, RegisteredEmail  # noqa: E402
 from autosecure.models.embed import Button, Embed, Modal, Preset  # noqa: E402
 from autosecure.models.invoice import Invoice  # noqa: E402
@@ -86,6 +87,7 @@ __all__ = [
     "BlacklistedEmail",
     "AutoSecure",
     "SecureConfig",
+    "Purchase",
     "Button",
     "Embed",
     "Modal",
