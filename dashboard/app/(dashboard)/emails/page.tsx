@@ -1,20 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch, apiPost, apiDelete } from "@/lib/api";
-import type { EmailMessage, EmailListResponse, WatchedListResponse, WatchResponse } from "@/lib/types";
+import type { EmailListResponse, WatchedListResponse, WatchResponse } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
-import { Inbox, Eye, EyeOff, RefreshCw, Trash2 } from "lucide-react";
+import { Inbox, Eye, EyeOff, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/empty-state";
 
 export default function EmailsPage() {
-  const qc = useQueryClient();
   const [selectedAddress, setSelectedAddress] = useState("");
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
