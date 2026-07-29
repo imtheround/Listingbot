@@ -35,6 +35,15 @@ class WatchResponse(BaseModel):
     message: str
 
 
+class WatchedAddress(BaseModel):
+    email: str
+
+
+class WatchedListResponse(BaseModel):
+    addresses: list[WatchedAddress]
+    total: int
+
+
 @router.get("/{address}", response_model=EmailListResponse)
 async def get_emails(
     address: str,
@@ -79,3 +88,31 @@ async def watch_email(
     repo = EmailRepo(db)
     await repo.register_inbox(user_id, body.email)
     return WatchResponse(success=True, message=f"Now watching {body.email}")
+
+
+@router.get("/watched/list", response_model=WatchedListResponse)
+async def list_watched(
+    user_id: CurrentUser,
+    db: DBSession,
+) -> WatchedListResponse:
+    """List all email addresses the current user is watching."""
+    repo = EmailRepo(db)
+    inboxes = await repo.get_inboxes(user_id)
+    return WatchedListResponse(
+        addresses=[WatchedAddress(email=reg.email) for reg in inboxes],
+        total=len(inboxes),
+    )
+
+
+@router.delete("/watch/{address}", response_model=WatchResponse)
+async def unwatch_email(
+    address: str,
+    user_id: CurrentUser,
+    db: DBSession,
+) -> WatchResponse:
+    """Stop watching an email address."""
+    repo = EmailRepo(db)
+    deleted = await repo.delete_inbox(user_id, address)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Address not found in watched list")
+    return WatchResponse(success=True, message=f"Stopped watching {address}")

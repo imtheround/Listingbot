@@ -125,8 +125,12 @@ export interface WatchResponse {
 }
 
 export interface WatchedAddress {
-  address: string;
-  created_at?: string;
+  email: string;
+}
+
+export interface WatchedListResponse {
+  addresses: WatchedAddress[];
+  total: number;
 }
 
 // --- Users ---

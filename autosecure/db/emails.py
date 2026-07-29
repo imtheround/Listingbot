@@ -53,6 +53,20 @@ class EmailRepo(BaseRepo):
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
+    async def delete_inbox(self, user_id: str, email: str) -> bool:
+        """Remove a registered inbox for *user_id*. Returns True if deleted."""
+        stmt = select(RegisteredEmail).where(
+            RegisteredEmail.user_id == user_id,
+            RegisteredEmail.email == email,
+        )
+        result = await self.session.execute(stmt)
+        reg = result.scalar_one_or_none()
+        if reg is None:
+            return False
+        await self.session.delete(reg)
+        await self.session.flush()
+        return True
+
     async def get_registered_email(self, email: str) -> RegisteredEmail | None:
         """Return the registered inbox record for *email*, or ``None``."""
         stmt = select(RegisteredEmail).where(RegisteredEmail.email == email)
