@@ -5,7 +5,6 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
-from dotenv import load_dotenv
 from fastapi import FastAPI
 
 from autosecure.core.config import settings
@@ -14,8 +13,6 @@ from autosecure.core.logging import get_logger, setup_logging
 from autosecure.core.middleware import setup_middleware
 from autosecure.core.redis import close_redis, init_redis
 from autosecure.core.state import state
-
-load_dotenv()
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator

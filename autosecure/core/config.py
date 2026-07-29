@@ -6,8 +6,11 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings
+
+load_dotenv()
 
 
 def _load_yaml_config() -> dict[str, Any]:
