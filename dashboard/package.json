@@ -21,7 +21,7 @@
     "tailwind-merge": "^2.6.0",
     "class-variance-authority": "^0.7.1",
     "sonner": "^1.7.0",
-    "@hcaptcha/react-hcaptcha": "^0.4.0"
+    "@hcaptcha/react-hcaptcha": "^2.0.2"
   },
   "devDependencies": {
     "typescript": "^5.7.0",
