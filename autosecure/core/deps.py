@@ -70,11 +70,16 @@ async def get_optional_user_id(
 
 async def require_owner(
     user_id: Annotated[str, Depends(get_current_user_id)],
+    db: AsyncSession = Depends(get_db),
 ) -> str:
-    """Require the user to be an owner."""
-    if not state.is_owner(user_id):
-        raise HTTPException(status_code=403, detail="Owner access required")
-    return user_id
+    """Require the user to be an owner (config list or DB role='owner')."""
+    if state.is_owner(user_id):
+        return user_id
+    repo = UserRepo(db)
+    user = await repo.get(user_id)
+    if user and user.permissions.get("role") == "owner":
+        return user_id
+    raise HTTPException(status_code=403, detail="Owner access required")
 
 
 async def require_active_license(
