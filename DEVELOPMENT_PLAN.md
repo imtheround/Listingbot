@@ -18,28 +18,30 @@
 |---|---|---|
 | **Backend API** | | |
 | 33 route endpoints | ✅ | All defined, registered in router |
-| JWT auth (login/refresh/logout) | ✅ | Works, tokens returned on POST /auth/login |
-| Health check | ✅ | /health returns DB + Redis status |
-| Account CRUD | ✅ | List, get, create, delete — ownership-scoped |
-| Bot CRUD | ✅ | List, get, create, update, delete |
+| JWT auth (login/refresh/logout) | ✅ | Works — deps injection fixed |
+| Health check | ✅ | Returns DB + Redis status |
+| Account CRUD | ✅ | List, get, create, delete — empty DB |
+| Bot CRUD | ✅ | List, get, create, update, delete — empty DB |
 | License redeem/transfer/status | ✅ | User endpoints work |
-| Admin endpoints (users, licenses) | ✅ | Owner-only |
-| Email inbox + watch | ✅ | Register + fetch emails |
+| Admin users (list/delete) | ✅ | Owner-only, returns round@autosecure.me |
+| Admin licenses (list/generate) | ✅ | Owner-only, empty DB |
+| Email inbox + watch | 🔧 | Watch works, fetch works — no unwatch, no watched-list |
 | Webhook subscriptions | ✅ | CRUD with ownership check |
 | User profile + settings | ✅ | View own profile, update settings |
-| SSE events endpoint | ❌ | No real-time push |
-| Status summary page | ❌ | No aggregated stats endpoint |
+| SSE events endpoint | ❌ | Not implemented |
+| Dashboard stats aggregate | ❌ | Not implemented |
+| Public status page | ❌ | Not implemented |
 | **Frontend Dashboard** | | |
-| Login page | ✅ | JWT + cookie, no sidebar |
-| Overview page | 🔧 | 4 stat cards + health card, but shapes often mismatch API response |
+| Login page | ✅ | JWT + cookie, no sidebar, works |
+| Overview page | 🔧 | 4 stat cards hit working API — shapes mismatch |
 | Accounts list | 🔧 | Table renders, search works — no add/delete UI |
-| Account detail | 🔧 | Renders details card + licenses card — field names mismatch API |
-| Bots list | 🔧 | Table + create/delete — create sends placeholder token |
+| Account detail | 🔧 | Renders card — field names mismatch API |
+| Bots list | 🔧 | Table + create/delete — token placeholder |
 | Bot detail | ❌ | No bot detail/edit page |
 | Bot start/stop/restart | ❌ | No action buttons |
 | Licenses list | 🔧 | Read-only table — no generate/redeem/transfer |
-| Email inbox | 🔧 | Watch + fetch work — no unwatch, no detail view |
-| Settings | ❌ | Empty input box — no actual settings editing |
+| Email inbox | 🔧 | Watch + fetch work — no unwatch, no detail |
+| Settings | ❌ | Empty input box — no settings editing |
 | Logs | ❌ | Placeholder "coming soon" |
 | Webhooks UI | ❌ | No webhook management page |
 | **Backend Infrastructure** | | |
@@ -47,8 +49,8 @@
 | Alembic migrations | ✅ | env.py + ini configured |
 | Redis integration | ✅ | Connection pool + rate limit |
 | Background tasks (7) | ✅ | Wired into lifespan |
-| RBAC middleware | 🔧 | Owner check exists — no role hierarchy |
-| Audit logging | ❌ | No AuditLog model in use |
+| RBAC (owner check) | 🔧 | Config list + DB role fallback — no role hierarchy |
+| Audit logging | ❌ | No AuditLog model or viewer API |
 | Idempotency | ❌ | No idempotency key support |
 | Circuit breakers | ❌ | Not implemented |
 | Retry with backoff | ❌ | Not implemented |
@@ -64,215 +66,218 @@
 
 ---
 
-## Table of Contents
+## Critical Fixes Applied (2026-07-29)
 
-1. [Dashboard Completion Plan](#1-dashboard-completion-plan)
-   - [Sprint 1: Overview + Accounts (Week 1)](#sprint-1-overview--accounts)
-   - [Sprint 2: Bots (Week 2)](#sprint-2-bots)
-   - [Sprint 3: Licenses + Emails (Week 3)](#sprint-3-licenses--emails)
-   - [Sprint 4: Settings + Logs + Webhooks (Week 4)](#sprint-4-settings--logs--webhooks)
-   - [Sprint 5: Real-time + Polish (Week 5)](#sprint-5-real-time--polish)
-2. [API Contract & Backend Gaps](#2-api-contract--backend-gaps)
-3. [Infrastructure & Hardening](#3-infrastructure--hardening)
-4. [Discord Bot](#4-discord-bot)
-5. [Testing Strategy](#5-testing-strategy)
-6. [Deployment Pipeline](#6-deployment-pipeline)
-7. [Appendices](#7-appendices)
+### Bug 1: All authenticated endpoints returned 422
+**Root cause:** Every route file imported `CurrentUser`, `DBSession`, `OwnerUser` inside `if TYPE_CHECKING:` blocks. `TYPE_CHECKING` is `False` at runtime, so FastAPI never saw the `Depends()` markers. It treated `user_id` and `db` as query parameters.
+
+**Fix:** Moved imports outside `TYPE_CHECKING` across 8 route files.
+
+### Bug 2: Pydantic models "not fully defined"
+**Root cause:** `accounts.py` and `bots.py` API models imported `datetime` under `TYPE_CHECKING`. With `from __future__ import annotations`, `datetime` was an undefined string at runtime, and Pydantic couldn't resolve `datetime.datetime | None`.
+
+**Fix:** Import `datetime` at runtime (real import, not TYPE_CHECKING).
+
+### Bug 3: Owner check always failed
+**Root cause:** `require_owner()` only checked `settings.owners` (config.yaml), which was `['']` (empty string). The user `round@autosecure.me` had `role: owner` in DB permissions but the config list was blank.
+
+**Fix:** Added user to config.yaml owners list. Enhanced `require_owner()` to fall back to checking `user.permissions.role == "owner"` from the database.
+
+### Bug 4: Login page had sidebar; redirect loop
+**Root cause:** Root layout had `<Sidebar />` for ALL pages. Login page used direct cross-origin fetch to `:8000`. Overview page API calls (also cross-origin) got 401 and redirected back to `/login`.
+
+**Fix:** Restructured with route groups (sidebar in `(dashboard)` group). Proxied `/auth/*` through Next.js. Made login use relative URL. Middleware excludes `/auth` paths.
 
 ---
 
-## 1. Dashboard Completion Plan
+## Sprint-Based Development Plan
 
 ### Sprint 1: Overview + Accounts (Week 1)
 
 **Goal:** Overview page shows real data, Accounts page is fully functional.
 
-#### Overview Page — Current state & fix
+#### Overview Page
 
-```
-Current:  4 stat cards loading from /health, /admin/users, /admin/licenses, /status
-Problem:  /admin/users and /admin/licenses require owner role — regular user gets 403
-Fix:      Create a new /dashboard/stats aggregate endpoint that returns everything in one call
-```
+**Current:** 4 stat cards hitting `/health`, `/admin/users`, `/admin/licenses`, `/status`. These work now but don't give a complete picture.
 
-##### Backend — New endpoint
+**Required:**
+- [ ] Backend: Create `GET /api/v1/dashboard/stats` — aggregate endpoint returning:
+  ```json
+  {
+    "total_accounts": 0,
+    "total_bots": 0,
+    "active_bots": 0,
+    "total_licenses": 0,
+    "active_licenses": 0,
+    "total_users": 1,
+    "uptime_seconds": 3600,
+    "health": {"database": true, "redis": true},
+    "recent_activity": []
+  }
+  ```
+- [ ] Backend: Register `dashboard.py` router in `__init__.py`
+- [ ] Frontend: Rewrite Overview page to use `/api/v1/dashboard/stats`
+- [ ] Frontend: Create `stats-card.tsx` — reusable stat card (icon, label, value)
+- [ ] Frontend: Create `activity-feed.tsx` — recent activity list
+- [ ] Frontend: Quick Action buttons → Accounts, Bots, Licenses
 
-Create `autosecure/api/routes/v1/dashboard.py`:
+#### Accounts Page
 
+**Backend `AccountResponse` actual shape:**
 ```python
-# GET /api/v1/dashboard/stats
-# Returns aggregated data for the overview page — no admin role required
-# Response:
-{
-  "total_accounts": 1247,
-  "total_bots": 12,
-  "active_bots": 8,
-  "total_licenses": 89,
-  "active_licenses": 67,
-  "total_users": 45,
-  "uptime_seconds": 3600,
-  "health": { "database": true, "redis": true },
-  "recent_activity": [
-    { "action": "account.secured", "target": "player1", "timestamp": "..." },
-    ...
-  ]
-}
+{ uid, username, email, networth, created_at }
 ```
 
-Register the router in `__init__.py`.
-
-##### Frontend — Overview page rewrite
-
-```
-Required components:
-1. StatsRow — 6 stat cards (Accounts, Bots Online, Users, Licenses Active, Uptime, Health)
-2. HealthCard — database/redis status badges
-3. RecentActivityFeed — scrollable list of recent actions
-4. QuickActionButtons — shortcuts to Accounts, Bots, Licenses pages
+**Frontend current `interface Account` (WRONG):**
+```typescript
+{ uuid, ign, email, status, created_at }
 ```
 
-**Deliverables:**
-- [ ] `dashboard/app/(dashboard)/page.tsx` — rewrite to use `/api/v1/dashboard/stats`
-- [ ] `dashboard/components/stats-card.tsx` — reusable stat card (icon, label, value, trend)
-- [ ] `dashboard/components/activity-feed.tsx` — recent activity list
-- [ ] Backend: `api/routes/v1/dashboard.py` — aggregate stats endpoint
-- [ ] Register dashboard router in `__init__.py`
-
-#### Accounts Page — Full CRUD
-
-**Current:** Table renders with search. No create. No delete. Detail page has wrong field names.
-
-**API response shape check:**
-```python
-# Actual backend response (api/models/accounts.py):
-class AccountResponse(BaseModel):
-    uid: str
-    username: str
-    email: str | None
-    networth: int | None
-    created_at: datetime
-
-# What frontend expects:
-interface Account {
-  uuid: string;   // ❌ Backend returns "uid" not "uuid"
-  ign: string;    // ❌ Backend returns "username" not "ign"
-  email: string;
-  status: string; // ❌ Backend doesn't have "status" field
-  created_at: string;
-}
-```
-
-Fix: Either align frontend types to backend response, or add fields to backend model.
-
-##### Plan
-
-1. **Stop building fake frontend types.** Create `dashboard/lib/types.ts` that mirrors backend Pydantic models exactly.
-2. **Update AccountsPage** to match real API response (`uid`, `username`, `email`, `networth`, `created_at`).
-3. **Add Add Account dialog** — modal form with uid, username, email, recovery_code fields, calls `POST /api/v1/accounts`.
-4. **Add Delete account** — confirmation dialog, calls `DELETE /api/v1/accounts/{uid}`.
-5. **Fix account detail page** — field names, remove fake "status" and "last_login" and "licenses" (those don't come from the API), add networth display.
-
-**Deliverables:**
-- [ ] `dashboard/lib/types.ts` — AccountResponse, BotResponse, LicenseResponse, etc.
-- [ ] `dashboard/app/(dashboard)/accounts/page.tsx` — real API fields, add/delete
-- [ ] `dashboard/app/(dashboard)/accounts/[id]/page.tsx` — real fields, show networth
-- [ ] `dashboard/components/add-account-dialog.tsx` — modal form
-- [ ] `dashboard/components/confirm-delete-dialog.tsx` — confirmation modal
+**Required:**
+- [ ] Frontend: Create `dashboard/lib/types.ts` — mirror all Pydantic models:
+  ```typescript
+  export interface AccountResponse {
+    uid: string;
+    username: string;
+    email: string | null;
+    networth: number | null;
+    created_at: string;
+  }
+  export interface AccountListResponse {
+    accounts: AccountResponse[];
+    total: number;
+    page: number;
+    pages: number;
+  }
+  export interface BotResponse {
+    id: number;
+    user_id: string;
+    botnumber: number;
+    status: string;
+    created_at: string | null;
+  }
+  export interface LicenseResponse {
+    license_key: string;
+    user_id: string;
+    expires_at: string;
+    is_active: boolean;
+  }
+  export interface AdminLicenseResponse {
+    license_key: string;
+    user_id: string | null;
+    expires_at: string;
+    is_used: boolean;
+  }
+  export interface AdminUserResponse {
+    user_id: string;
+    permissions: Record<string, any>;
+    claiming: string;
+    rest_split: number;
+  }
+  export interface UserProfileResponse {
+    user_id: string;
+    permissions: Record<string, any>;
+    claiming: string;
+    rest_split: number;
+  }
+  export interface EmailMessage {
+    id: number;
+    sender: string;
+    subject: string;
+    description: string;
+    time: number;
+  }
+  export interface WebhookResponse {
+    id: number;
+    url: string;
+    events: string[];
+    active: boolean;
+  }
+  export interface HealthResponse {
+    status: string;
+    checks: Record<string, boolean>;
+    uptime: number;
+  }
+  export interface DashboardStats {
+    total_accounts: number;
+    total_bots: number;
+    active_bots: number;
+    total_licenses: number;
+    active_licenses: number;
+    total_users: number;
+    uptime_seconds: number;
+    health: Record<string, boolean>;
+    recent_activity: any[];
+  }
+  ```
+- [ ] Frontend: Rewrite Accounts list page — use real field names (uid, username, email, networth)
+- [ ] Frontend: Add "Add Account" dialog — form: uid, username, email, recovery_code → `POST /api/v1/accounts`
+- [ ] Frontend: Add "Delete" button per row — confirmation dialog → `DELETE /api/v1/accounts/{uid}`
+- [ ] Frontend: Fix Account detail page — remove fake `status`/`last_login`/`licenses`, add networth display
 
 ---
 
 ### Sprint 2: Bots (Week 2)
 
-**Goal:** Bot management with start, stop, restart, token editing, detail view.
+**Goal:** Full bot lifecycle management.
 
-#### Current state
+**Backend routes (all verified working):**
 ```
-Backend:
-  GET /api/v1/bots — list user's bots (returns id, user_id, botnumber, status)
-  GET /api/v1/bots/{id} — get one bot
-  POST /api/v1/bots — create with token (body: {token: "..."})
-  PUT /api/v1/bots/{id} — update domain, activity, dmmode
-  DELETE /api/v1/bots/{id} — destroy bot
-  POST /api/v1/bots/{id}/restart — restart bot
-
-Frontend:
-  Table renders id, botnumber, status, created_at
-  "New Bot" sends {token: "pending"} — placeholder, not real
-  No edit, no start/stop, no restart
-  No detail page
+GET    /api/v1/bots          → list user's bots
+GET    /api/v1/bots/{id}     → get bot details
+POST   /api/v1/bots          → create with {token}
+PUT    /api/v1/bots/{id}     → update domain, activity, dmmode
+DELETE /api/v1/bots/{id}     → destroy bot
+POST   /api/v1/bots/{id}/restart → restart bot
 ```
 
-#### Plan
-
-1. **Bot list actions** — Add Start/Stop/Restart buttons per row. Start = POST (needs backend endpoint), Stop = DELETE (currently kills it), Restart = POST `{id}/restart`.
-2. **Bot create modal** — Form with token field (not "pending"), show generated bot number on success.
-3. **Bot detail page** — `/bots/{id}` with config editor (domain, activity, dmmode) via PUT.
-4. **Backend gaps**:
-   - No `POST /bots/{id}/start` endpoint (just starts from state)
-   - Add `created_at` to `BotResponse` Pydantic model
-
-**Deliverables:**
-- [ ] `dashboard/app/(dashboard)/bots/page.tsx` — start/stop/restart/delete buttons, create modal
-- [ ] `dashboard/app/(dashboard)/bots/[id]/page.tsx` — bot detail with config editor
-- [ ] `dashboard/components/create-bot-dialog.tsx` — form with token field
-- [ ] `dashboard/components/bot-status-badge.tsx` — running/stopped with color
-- [ ] Backend: add `created_at` to `BotResponse` model
-- [ ] Backend: add `POST /bots/{id}/start` (start a stopped bot)
+**Required:**
+- [ ] Backend: Add `created_at` field to `BotResponse` Pydantic model (already in code but verify it's populated)
+- [ ] Backend: Add `POST /api/v1/bots/{id}/start` — start a stopped bot
+- [ ] Frontend: Bot list page — action buttons per row: Start, Stop, Restart, Delete
+- [ ] Frontend: Create bot modal — form with real token field (not `"pending"`)
+- [ ] Frontend: Bot detail page at `/bots/{id}` — config editor (domain, activity, dmmode) via PUT
 
 ---
 
 ### Sprint 3: Licenses + Emails (Week 3)
 
-**Goal:** Full license management (generate, redeem, transfer) + email inbox with detail view.
+**Goal:** Full license management (generate, redeem, transfer) + email inbox with detail.
 
-#### Licenses — Current state
+#### Licenses
+
+**Backend routes (all working):**
 ```
-Backend:
-  GET  /admin/licenses — list all (owner)
-  POST /admin/licenses/generate — create keys (owner)
-  POST /licenses/redeem — claim a key (user)
-  GET  /licenses/{key}/status — check key (user)
-  POST /licenses/transfer — give key to another user
-
-Frontend:
-  Read-only table of all licenses (admin endpoint)
-  No generate, no redeem, no transfer
+GET    /api/v1/admin/licenses        → list all (owner)
+POST   /api/v1/admin/licenses/generate → create keys (owner)
+POST   /api/v1/licenses/redeem       → claim key (user)
+GET    /api/v1/licenses/{key}/status → check key (user)
+POST   /api/v1/licenses/transfer     → transfer to another user
 ```
 
-#### Plan
+**Required:**
+- [ ] Frontend: License list — add status badges (Active/Expired/Warning based on expiry)
+- [ ] Frontend: "Generate Licenses" dialog (admin) — count + expiry, calls admin generate
+- [ ] Frontend: "Redeem License" dialog (user) — enter key, calls redeem
+- [ ] Frontend: "Transfer" button per license — enter target user_id, calls transfer
+- [ ] Frontend: Search/filter by key or user
 
-1. **License list** — Add status badges (Active/Expired/Warning) based on expiry. Add search by key/user.
-2. **Generate licenses dialog** — Admin form: count, expiry duration. Calls `POST /admin/licenses/generate`.
-3. **Redeem license** — User-facing form: enter key, calls `POST /licenses/redeem`. Shows result (success + expiry).
-4. **Transfer license** — Inline action per license: enter target user_id, calls `POST /licenses/transfer`.
-5. **Licenses page per user** — `/users/{id}/licenses` via `GET /users/{id}/licenses`.
+#### Emails
 
-#### Emails — Current state
+**Backend routes (partially working):**
 ```
-Backend:
-  GET  /emails/{address} — list emails (ownership check)
-  POST /emails/watch — register address for monitoring
-
-Frontend:
-  Watch + Fetch works. No unwatch. No email detail. No real-time.
+GET    /api/v1/emails/{address}       → list emails (works)
+POST   /api/v1/emails/watch           → register address (works)
+GET    /api/v1/emails/watched         → ❌ NOT IMPLEMENTED
+DELETE /api/v1/emails/watch/{address} → ❌ NOT IMPLEMENTED
 ```
 
-#### Plan
-
-1. **Email detail** — Click an email row → expandable view showing full content (sender, subject, description, time).
-2. **Unwatch email** — Add "Stop Watching" button per address that calls `DELETE /emails/watch/{address}`.
-3. **Auto-refresh** — Poll `/emails/{address}` every 5s when viewing an inbox.
-4. **Watched addresses list** — Show all watched addresses for the user (needs backend endpoint: `GET /emails/watched`).
-
-**Deliverables:**
-- [ ] `dashboard/app/(dashboard)/licenses/page.tsx` — generate, redeem, transfer actions
-- [ ] `dashboard/components/generate-licenses-dialog.tsx` — count + expiry form
-- [ ] `dashboard/components/redeem-license-dialog.tsx` — key input form
-- [ ] `dashboard/components/license-status-badge.tsx` — active/warning/expired
-- [ ] `dashboard/app/(dashboard)/emails/page.tsx` — detail view, unwatch, auto-refresh
-- [ ] Backend: `DELETE /emails/watch/{address}` — stop watching
-- [ ] Backend: `GET /emails/watched` — list watched addresses
-- [ ] Backend: Add `created_at` to email list response
+**Required:**
+- [ ] Backend: `GET /api/v1/emails/watched` — list watched addresses for current user
+- [ ] Backend: `DELETE /api/v1/emails/watch/{address}` — stop watching an address
+- [ ] Frontend: Email detail — click row → expand showing full sender/subject/description
+- [ ] Frontend: Unwatch button per watched address
+- [ ] Frontend: Auto-refresh inbox (poll every 5s when viewing)
 
 ---
 
@@ -280,77 +285,64 @@ Frontend:
 
 **Goal:** Fully functional settings editor, audit log viewer, webhook management.
 
-#### Settings — Current state
-```
-Backend:
-  GET  /users/{user_id} — profile (permissions, claiming, rest_split)
-  PUT  /users/{user_id}/settings — update showleaderboard
-  No config.yaml editing API
+#### Settings
 
-Frontend:
-  Input box that fetches /users/{id} on enter. That's it.
+**Backend routes (user profile works):**
+```
+GET  /api/v1/users/{user_id}          → profile (works)
+PUT  /api/v1/users/{user_id}/settings → update showleaderboard (works)
 ```
 
-#### Plan
+**Required:**
+- [ ] Backend: `PUT /api/v1/users/{user_id}/password` — change password (current + new)
+- [ ] Frontend: Settings page — auto-load current user profile on mount, editable form
+- [ ] Frontend: Password change form (current password, new password, confirm)
+- [ ] Frontend: Claiming preference (dropdown: none/auto/manual)
+- [ ] Frontend: rest_split field (number input)
+- [ ] Frontend: showleaderboard toggle
 
-1. **Settings form** — Load current user's profile on mount. Form fields:
-   - General: claiming (text input), rest_split (number)
-   - Discord preferences: showleaderboard (toggle)
-   - Security: change password (new field needed in backend)
-2. **Config editor (admin)** — Admin-only page to view/edit config.yaml values (whitelist safe fields: ui.*, smtp.*, etc.).
-3. **Password change** — Backend: `PUT /users/{user_id}/password` with current + new password.
+#### Logs
 
-#### Logs — Current state
+**Backend: No audit log infrastructure. Need to build from scratch.**
+
+**Required:**
+- [ ] Backend: Create `autosecure/models/audit.py` — AuditLog model:
+  ```python
+  class AuditLog(Base):
+      __tablename__ = "audit_logs"
+      id = Column(Integer, primary_key=True)
+      timestamp = Column(DateTime, server_default=func.now(), index=True)
+      actor_id = Column(String(255), nullable=False, index=True)
+      action = Column(String(100), nullable=False, index=True)
+      target_type = Column(String(50))
+      target_id = Column(String(255))
+      details = Column(JSON)
+      success = Column(Boolean, default=True)
+      ip_address = Column(String(45))
+  ```
+- [ ] Backend: Alembic migration for `audit_logs` table
+- [ ] Backend: Create `autosecure/core/audit.py` — `log_audit_event()` helper
+- [ ] Backend: Create `GET /api/v1/admin/logs` — paginated log viewer (owner-only)
+  - Query params: page, per_page, action, actor_id, target_type, success, date_from, date_to
+  - Returns: `{ logs: [...], total, page, pages }`
+- [ ] Backend: Wire audit logging into existing write endpoints (account create/delete, bot create/delete, license redeem/generate, login, etc.)
+- [ ] Frontend: Logs page — table with filters: action type dropdown, user search, date range picker, success/fail toggle
+- [ ] Frontend: Pagination on logs
+
+#### Webhooks
+
+**Backend routes (all working):**
 ```
-Backend: No audit log model. No log viewer API.
-Frontend: "Coming soon" placeholder.
+GET    /api/v1/webhooks         → list (works)
+POST   /api/v1/webhooks         → create (works)
+DELETE /api/v1/webhooks/{id}    → delete (works)
 ```
 
-#### Plan
-
-1. **AuditLog model** — Create `models/audit.py`:
-   ```python
-   class AuditLog(Base):
-       __tablename__ = "audit_logs"
-       id = Column(Integer, primary_key=True)
-       timestamp = Column(DateTime, server_default=func.now())
-       actor_id = Column(String(255), nullable=False)
-       action = Column(String(100), nullable=False)
-       target_type = Column(String(50))
-       target_id = Column(String(255))
-       details = Column(JSON)
-       success = Column(Boolean, default=True)
-       ip_address = Column(String(45))
-   ```
-2. **Audit logging middleware** — Auto-log all API requests (path, method, user_id, status, duration).
-3. **Log viewer API** — `GET /admin/logs` with pagination, filter by action/actor/date, owner-only.
-4. **Log viewer page** — Table with filters (action type, user, date range, success/fail).
-5. **Wired into existing routes** — Add `log_audit_event()` call to every write endpoint.
-
-#### Webhooks — Current state
-```
-Backend: Full CRUD exists.
-Frontend: No UI at all.
-```
-
-#### Plan
-
-1. **Webhooks page** — `/webhooks` with create form (URL, events list, secret) + list with delete.
-2. **Webhook test button** — Send test event.
-
-**Deliverables:**
-- [ ] Backend: `models/audit.py` — AuditLog model
-- [ ] Backend: Alembic migration for audit_logs table
-- [ ] Backend: `core/audit.py` — `log_audit_event()` helper
-- [ ] Backend: `GET /admin/logs` — paginated log viewer API
-- [ ] Backend: `PUT /users/{user_id}/password` — change password
-- [ ] Backend: `GET /emails/watched` — list watched addresses
-- [ ] Backend: `DELETE /emails/watch/{address}` — stop watching
-- [ ] `dashboard/app/(dashboard)/settings/page.tsx` — full settings form
-- [ ] `dashboard/app/(dashboard)/logs/page.tsx` — log viewer with filters
-- [ ] `dashboard/app/(dashboard)/webhooks/page.tsx` — webhook management
-- [ ] `dashboard/components/logs-filter.tsx` — filter bar component
-- [ ] `dashboard/components/webhook-form.tsx` — create/edit webhook form
+**Required:**
+- [ ] Frontend: Webhooks page at `/webhooks`
+- [ ] Frontend: Create webhook form — URL, events (checkboxes), secret
+- [ ] Frontend: Webhook list with delete button
+- [ ] Frontend: "Test" button that fires a test event
 
 ---
 
@@ -360,449 +352,223 @@ Frontend: No UI at all.
 
 #### SSE — Server-Sent Events
 
-1. **Backend:** `GET /api/v1/events` — SSE endpoint that streams events from Redis pub/sub.
-   ```python
-   # Events emitted:
-   #   account.created   — {uid, username, user_id}
-   #   account.deleted   — {uid}
-   #   bot.status_change — {bot_id, status, user_id}
-   #   license.redeemed  — {license_key, user_id}
-   #   license.expired   — {license_key}
-   ```
-2. **Frontend:** Hook `useEvents()` that connects to `/api/v1/events`, invalidates react-query caches on relevant events.
-3. **Wired into overview** — Live bot count, recent activity feed.
+- [ ] Backend: Redis pub/sub helper — `await redis.publish("events", json.dumps(event))`
+- [ ] Backend: `GET /api/v1/events` — SSE endpoint streaming from Redis pub/sub
+  ```python
+  @router.get("/events")
+  async def event_stream(user_id: CurrentUser):
+      async def generate():
+          pubsub = redis.pubsub()
+          await pubsub.subscribe("events")
+          async for msg in pubsub.listen():
+              if msg["type"] == "message":
+                  yield f"data: {msg['data']}\n\n"
+      return StreamingResponse(generate(), media_type="text/event-stream")
+  ```
+- [ ] Backend: Emit events from write endpoints:
+  - `account.created`, `account.deleted`
+  - `bot.created`, `bot.deleted`, `bot.status_change`
+  - `license.redeemed`, `license.generated`
+- [ ] Frontend: `dashboard/lib/hooks/useEvents.ts` — SSE subscription hook that invalidates react-query caches
+- [ ] Frontend: Wire into overview (live bot count, recent activity feed)
 
 #### Public Status Page
 
-1. **`/status`** — Public page (no auth) showing:
-   - API health (green/red dot)
-   - Database status
-   - Redis status
-   - Uptime
-   - Not rendering inside dashboard (different layout, no sidebar)
-2. **Backend:** `GET /api/v1/public/status` — lightweight health check (no auth).
+- [ ] Backend: `GET /api/v1/public/status` — lightweight health (no auth):
+  ```json
+  { "status": "ok", "uptime": 3600, "database": true, "redis": true }
+  ```
+- [ ] Frontend: `app/status/page.tsx` — public page, no auth, no sidebar
+  - Green/red dot for API status
+  - Database + Redis status
+  - Uptime display
+  - Different layout than dashboard (no sidebar, no header)
 
 #### Polish
 
-1. **Error boundaries** — Wrap each page in `<ErrorBoundary>` that shows "Something went wrong" with retry button.
-2. **Loading skeletons** — Replace all "Loading..." text with skeleton animations.
-3. **Empty states** — Consistent empty state: icon + message + action button (e.g., "No accounts yet. Add your first account.").
-4. **Toast notifications** — Success/error toasts on all mutations (create, delete, update).
-5. **Pagination** — All list pages use server-side pagination (page, per_page, total, pages).
-6. **Keyboard shortcuts** — `Ctrl+K` for search, `Ctrl+N` for new item.
-7. **Responsive sidebar** — Collapsible on mobile. Currently fixed 224px.
-
-**Deliverables:**
-- [ ] Backend: `api/routes/v1/events.py` — SSE endpoint
-- [ ] Backend: Redis pub/sub on all write operations
-- [ ] `dashboard/lib/hooks/useEvents.ts` — SSE subscription hook
-- [ ] `dashboard/app/status/page.tsx` — public status page (no auth, no sidebar)
-- [ ] `dashboard/components/error-boundary.tsx` — page-level error boundary
-- [ ] `dashboard/components/skeleton.tsx` — reusable skeleton component
-- [ ] `dashboard/components/empty-state.tsx` — consistent empty state
-- [ ] Pagination on accounts, bots, licenses, emails, logs pages
-- [ ] Toast notifications on all mutations
+- [ ] Frontend: Error boundaries — wrap each page in `<ErrorBoundary>` with retry button
+- [ ] Frontend: Loading skeletons — replace all "Loading..." text with animated skeleton
+- [ ] Frontend: Empty states — consistent pattern: icon + message + action button
+- [ ] Frontend: Toast notifications — success/error toasts on all mutations (create, delete, update)
+- [ ] Frontend: Pagination — accounts, bots, licenses, emails, logs pages use server-side pagination
+- [ ] Frontend: Sidebar — collapsible on mobile, active route highlighting
 
 ---
 
-## 2. API Contract & Backend Gaps
+## API Contract (Real Shape vs Frontend Assumptions)
 
-### 2.1 Missing Endpoints
+### Backend Response Shapes (What the API actually returns)
 
-| Endpoint | Method | Purpose | Priority |
-|---|---|---|---|
-| `/api/v1/dashboard/stats` | GET | Aggregated dashboard overview (no auth) | High |
-| `/api/v1/bots/{id}/start` | POST | Start a stopped bot | High |
-| `/api/v1/emails/watched` | GET | List watched addresses | Medium |
-| `/api/v1/emails/watch/{address}` | DELETE | Stop watching an address | Medium |
-| `/api/v1/users/{user_id}/password` | PUT | Change password | Medium |
-| `/api/v1/admin/logs` | GET | Paginated audit log viewer | High |
-| `/api/v1/events` | GET | SSE real-time stream | Medium |
-| `/api/v1/public/status` | GET | Lightweight public health check | Low |
-
-### 2.2 Model Field Gaps
-
-| Model | Missing Field | Frontend Needs It For |
+| Endpoint | Actual Fields | Notes |
 |---|---|---|
-| `BotResponse` | `created_at: datetime` | Bot list table |
-| `AccountResponse` | `status: str` | Account status badge |
-| `AccountResponse` | `last_login: datetime \| None` | Account detail |
-| `EmailMessage` | `read: bool` | Read/unread indicator |
-| `EmailMessage` | `created_at: datetime` | Email list timing |
+| `GET /api/v1/accounts` | `{ accounts: [...], total, page, pages }` | Each account: `uid, username, email, networth, created_at` |
+| `GET /api/v1/accounts/{uid}` | `{ uid, username, email, networth, created_at }` | No `status`, no `last_login`, no `licenses` |
+| `POST /api/v1/accounts` | `{ uid, username, email, created_at }` | Body: `{ uid, username, email, recovery_code }` |
+| `DELETE /api/v1/accounts/{uid}` | `{ success, message }` | |
+| `GET /api/v1/bots` | `[ { id, user_id, botnumber, status } ]` | No `created_at` |
+| `POST /api/v1/bots` | `{ id, user_id, botnumber, status }` | Body: `{ token }` |
+| `DELETE /api/v1/bots/{id}` | `{ success, message }` | |
+| `GET /api/v1/admin/users` | `{ users: [...], total }` | Each user: `user_id, permissions, claiming, rest_split` |
+| `GET /api/v1/admin/licenses` | `{ licenses: [...], total }` | Each license: `license_key, user_id, expires_at, is_used` |
+| `POST /api/v1/admin/licenses/generate` | `{ licenses: [...], count }` | Body: `{ count, expiry }` |
+| `POST /api/v1/licenses/redeem` | `{ license_key, user_id, expires_at, is_active }` | Body: `{ license_key }` |
+| `POST /api/v1/licenses/transfer` | `{ license_key, user_id, expires_at, is_active }` | Body: `{ new_user_id }` |
+| `GET /api/v1/emails/{address}` | `{ emails: [...], total }` | Each email: `id, sender, subject, description, time` |
+| `POST /api/v1/emails/watch` | `{ success, message }` | Body: `{ email }` |
+| `GET /api/v1/users/{user_id}` | `{ user_id, permissions, claiming, rest_split }` | Ownership-scoped |
+| `PUT /api/v1/users/{user_id}/settings` | `{ user_id, showleaderboard }` | Body: `{ showleaderboard }` |
+| `GET /api/v1/webhooks` | `{ webhooks: [...], total }` | Each webhook: `id, url, events, active` |
+| `POST /api/v1/webhooks` | `{ id, url, events, active }` | Body: `{ url, events, secret }` |
+| `POST /auth/login` | `{ access_token, refresh_token, token_type, expires_in }` | Body: `{ email, password }` |
+| `GET /health` | `{ status, checks: { database, redis }, uptime }` | No auth required |
 
-### 2.3 Response Shape Mismatches (Frontend vs Backend)
+### Missing Backend Endpoints
 
-**Accounts list page:**
-```
-Frontend uses:  { uuid, ign, email, status, created_at }
-Backend sends:  { uid, username, email, networth, created_at }
-Fix:           Align frontend types to backend. Map uid→uuid, username→ign in lib/types.ts
-```
-
-**Account detail page:**
-```
-Frontend expects: { uuid, ign, email, status, created_at, last_login, licenses: [...] }
-Backend sends:    { uid, username, email, networth, created_at }
-Fix:             Remove fake fields. Add networth display. Add licenses separately if needed.
-```
-
-### 2.4 RBAC — Full Role Implementation
-
-**Current:** Only `OwnerUser` check exists. No roles, no hierarchy.
-
-**Target permission matrix:**
-
-```
-Role       manage_users  manage_licenses  manage_bots  view_logs  view_admin  generate_licenses
-───────    ────────────  ──────────────── ──────────── ────────── ─────────── ─────────────────
-owner       ✓             ✓                ✓            ✓          ✓           ✓
-admin       ✓             ✗                ✓ (own)      ✓          ✓           ✗
-user        ✗             ✗                ✓ (own)      ✗          ✗           ✗
-viewer      ✗             ✗                ✗            ✗          ✗           ✗
-```
-
-**Implementation:** Add `role` field to `User.permissions` JSON. Create middleware `require_role("admin")` that wraps `require_owner` logic but checks role hierarchy.
+| Endpoint | Method | Priority | Sprint |
+|---|---|---|---|
+| `/api/v1/dashboard/stats` | GET | High | 1 |
+| `/api/v1/bots/{id}/start` | POST | High | 2 |
+| `/api/v1/emails/watched` | GET | Medium | 3 |
+| `/api/v1/emails/watch/{address}` | DELETE | Medium | 3 |
+| `/api/v1/users/{user_id}/password` | PUT | Medium | 4 |
+| `/api/v1/admin/logs` | GET | High | 4 |
+| `/api/v1/events` | GET | Medium | 5 |
+| `/api/v1/public/status` | GET | Low | 5 |
 
 ---
 
-## 3. Infrastructure & Hardening
+## Infrastructure & Hardening
 
-### 3.1 nginx Reverse Proxy
+### 6-Item Deployment Upgrade
 
-**Current:** API on port 8000, Dashboard on port 3000, both directly exposed with ufw.
+| # | Task | Current | Target |
+|---|---|---|---|
+| 1 | Process manager | Bare `nohup` processes | pm2 with auto-restart |
+| 2 | Reverse proxy | Two ports (3000 + 8000) | nginx on port 443 → proxy |
+| 3 | SSL | HTTP only | Let's Encrypt via certbot |
+| 4 | Dashboard startup | Manual restart after build | pm2 startup script |
+| 5 | API startup | Manual after kill | pm2 + auto-restart |
+| 6 | CI/CD | Manual git pull + build | GitHub Actions auto-deploy |
 
-**Target:**
+### nginx Config (Target)
 
+```nginx
+server {
+    listen 443 ssl;
+    server_name autosecure.me;
+
+    ssl_certificate /etc/letsencrypt/live/autosecure.me/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/autosecure.me/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:8000;
+    }
+
+    location /auth/ {
+        proxy_pass http://127.0.0.1:8000;
+    }
+
+    location /health {
+        proxy_pass http://127.0.0.1:8000;
+    }
+}
+
+server {
+    listen 80;
+    server_name autosecure.me;
+    return 301 https://$server_name$request_uri;
+}
 ```
-Port 443 (HTTPS) → nginx
-  ├── /api/*  → proxy_pass localhost:8000
-  ├── /auth/* → proxy_pass localhost:8000
-  ├── /health → proxy_pass localhost:8000
-  └── /*      → proxy_pass localhost:3000 (Next.js)
-```
 
-This eliminates:
-- CORS issues entirely (everything same-origin)
-- Need for `NEXT_PUBLIC_API_URL`
-- Need for Next.js rewrites
-
-### 3.2 SSL/HTTPS
-
-- Use Let's Encrypt + certbot for auto-renewing SSL
-- Redirect HTTP→HTTPS at nginx level
-- HSTS header
-
-### 3.3 pm2 Process Management
-
-**Current:** Bare `nohup npx next start` — if the process dies, it's down.
-
-**Target:** pm2 for both API and dashboard:
-
-```bash
-pm2 start .venv/bin/uvicorn --name autosec-api -- autosecure.core.app:app --host 0.0.0.0 --port 8000
-pm2 start npm --name autosec-dash --cwd /opt/autosec/dashboard -- start
-pm2 save
-pm2 startup
-```
-
-This gives:
-- Auto-restart on crash
-- Log management (pm2 logs)
-- Startup on boot
-
-### 3.4 Hardening Checklist
+### Hardening Checklist
 
 - [ ] nginx reverse proxy (single port 443)
 - [ ] Let's Encrypt SSL (auto-renew via certbot)
 - [ ] CSP headers in nginx
 - [ ] HSTS header
-- [ ] Rate limiting on auth endpoints (10 req/min)
+- [ ] Rate limiting on auth endpoints (10 req/min via Redis)
 - [ ] Account lockout after 5 failed login attempts
 - [ ] Password complexity requirements
-- [ ] Session token rotation on login
-- [ ] CSRF tokens on dashboard mutations
-- [ ] Input sanitization on all user-facing fields
 - [ ] Audit logging on all write operations
-- [ ] Idempotency keys on account/bot/license creation
-- [ ] Retry with backoff on external API calls (Hypixel, MS)
-- [ ] Circuit breakers on external services
-- [ ] Graceful shutdown (5s timeout)
-- [ ] Resource limits in pm2 (max_memory_restart)
+- [ ] pm2 with max memory restart (500MB per process)
 
 ---
 
-## 4. Discord Bot
+## Discord Bot
 
-**Not started yet. Planned after dashboard is complete.**
+**Not started. Planned after Sprint 5 (dashboard complete).**
 
-### Phase 1 — Controller Bot (Week 6-7)
+Phases:
+1. Controller bot — slash commands, buttons, modals (Week 6-7)
+2. Worker bots — per-user bot instances (Week 7-8)
+3. UI components — embeds, panels, modals (Week 8)
 
-The main bot that handles slash commands, button interactions, and modal submissions. Runs once, manages state.
+---
 
-**Files to create:**
-```
-bot/controller/client.py           — Main bot startup, Discord client
-bot/controller/events/on_ready.py  — Sync commands, start workers
-bot/controller/events/on_interaction.py — Route interactions
-bot/controller/commands/__init__.py — 32 slash command definitions
-bot/controller/buttons/__init__.py  — 100+ button handler files
-bot/controller/modals/__init__.py   — 60+ modal handler files
-```
+## Testing Strategy
 
-### Phase 2 — Worker Bots (Week 7-8)
+### Phase 1: API Tests (pytest + httpx)
 
-Per-user bot instances that handle account securing. Each user gets their own bot instance.
+Start with Sprint 1. Each new endpoint gets a test.
 
-**Files to create:**
-```
-bot/worker/client.py        — Worker bot factory class
-bot/worker/query.py         — botnumber-aware DB queries
-bot/worker/commands/        — 17 worker-specific commands
-bot/worker/buttons/         — Worker button handlers
-bot/worker/modals/          — Worker modal handlers
-bot/worker/events/          — Worker event handlers
+```python
+# tests/conftest.py — test DB, test client, auth headers
+# tests/test_api/test_auth.py — login, refresh, logout
+# tests/test_api/test_accounts.py — CRUD
+# tests/test_api/test_dashboard.py — stats endpoint
 ```
 
-### Phase 3 — UI Components (Week 8)
+### Phase 2: Frontend Tests (Playwright)
 
-```
-ui/embeds.py       — Embed builders (account info, stats, etc.)
-ui/panels.py       — Feature panels (purchase, guide, settings)
-ui/modals.py       — Modal builders
-ui/stats_card.py   — Stats image generation
-ui/accounts.py     — Account display helpers
-ui/email_viewer.py — Email display in Discord
+Start in Sprint 5. Critical flows only.
+
+```typescript
+// tests/e2e/login.spec.ts — login flow
+// tests/e2e/accounts.spec.ts — list, create, delete
+// tests/e2e/bots.spec.ts — list, create, delete
 ```
 
 ---
 
-## 5. Testing Strategy
-
-### 5.1 Backend Tests
-
-**Framework:** pytest + pytest-asyncio + httpx AsyncClient
-
-**Test structure:**
-```
-tests/
-├── conftest.py            — fixtures (db, client, auth headers)
-├── test_api/
-│   ├── test_auth.py       — login, refresh, logout
-│   ├── test_accounts.py   — CRUD + stats
-│   ├── test_bots.py       — CRUD + start/stop
-│   ├── test_licenses.py   — redeem, transfer, admin generate
-│   ├── test_emails.py     — watch, fetch, unwatch
-│   ├── test_users.py      — profile, settings
-│   ├── test_webhooks.py   — CRUD
-│   └── test_admin.py      — admin-only endpoints
-├── test_services/
-│   ├── test_auth.py       — Microsoft auth flow
-│   ├── test_hypixel.py    — Stats fetching
-│   └── test_securing.py   — OTP, recovery flows
-├── test_tasks/
-│   ├── test_license_check.py
-│   └── test_quarantine.py
-└── test_db/
-    ├── test_accounts.py
-    └── test_bots.py
-```
-
-**Coverage target:** 80%+ on API routes, 60%+ on services.
-
-**Key test cases per sprint:**
-
-| Sprint | Test Coverage |
-|---|---|
-| Sprint 1 | Dashboard stats endpoint, account CRUD |
-| Sprint 2 | Bot CRUD, start/stop lifecycle |
-| Sprint 3 | License redeem/transfer/generate, email watch/unwatch |
-| Sprint 4 | Audit log, settings, webhooks |
-| Sprint 5 | SSE endpoint, public status |
-
-### 5.2 Frontend Tests
-
-**Framework:** Playwright for E2E, Vitest + React Testing Library for unit.
-
-```
-tests/e2e/
-├── login.spec.ts          — Login flow, cookie, redirect
-├── overview.spec.ts       — Stats load, health check display
-├── accounts.spec.ts       — List, search, create, delete
-├── bots.spec.ts           — List, create, start, stop, delete
-├── licenses.spec.ts       — List, generate, redeem
-└── settings.spec.ts       — Profile editing, password change
-```
-
-### 5.3 CI
-
-**Current:** Nothing.
-
-**Target:** GitHub Actions running on every push:
-
-```yaml
-name: CI
-on: [push]
-jobs:
-  backend:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with: { python-version: "3.12" }
-      - run: pip install -e ".[dev]"
-      - run: ruff check .
-      - run: pytest --cov=autosecure
-  frontend:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: "22" }
-      - run: cd dashboard && npm ci && npm run build
-```
-
----
-
-## 6. Deployment Pipeline
-
-### 6.1 Current Flow (manual)
-
-```
-git push origin main
-ssh into server
-cd /opt/autosec && git pull
-cd dashboard && npm run build
-kill next process && restart
-```
-
-### 6.2 Target Flow (automated)
-
-```yaml
-name: Deploy
-on:
-  push:
-    branches: [main]
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Deploy to server
-        uses: appleboy/ssh-action@v1
-        with:
-          host: 104.168.24.47
-          username: root
-          key: ${{ secrets.SSH_KEY }}
-          script: |
-            set -e
-            cd /opt/autosec
-            git pull origin main
-            cd dashboard && npm ci && npm run build
-            pm2 restart autosec-api autosec-dash
-```
-
-### 6.3 Rollback Plan
-
-- PM2 saves process list — if a deploy fails, `pm2 resurrect` restores last working state
-- VCS rollback: `git revert HEAD` or `git reset --hard <last-good-sha>` + rebuild
-
----
-
-## 7. Appendices
-
-### A. Technology Reference
-
-| Layer | Tech | Version |
-|---|---|---|
-| Backend framework | FastAPI | ≥0.115 |
-| ASGI server | uvicorn | ≥0.34 |
-| Database | PostgreSQL 16 | — |
-| ORM | SQLAlchemy async | ≥2.0 |
-| Migrations | Alembic | ≥1.14 |
-| Cache | Redis 8 | — |
-| Frontend | Next.js | 15.x |
-| Styling | Tailwind CSS | 3.4 |
-| Language (backend) | Python | 3.12 |
-| Language (frontend) | TypeScript | 5.x |
-| Process manager | pm2 | latest |
-
-### B. Environment Variables (.env)
-
-```
-AUTOSECURE_DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/autosecure
-AUTOSECURE_REDIS_URL=redis://localhost:6379/0
-AUTOSECURE_SECRET_KEY=<random-64-char-hex>
-AUTOSECURE_SECURITY__JWT_SECRET=<random-64-char-hex>
-AUTOSECURE_API_HOST=0.0.0.0
-AUTOSECURE_API_PORT=8000
-AUTOSECURE_API_WORKERS=4
-```
-
-### C. Quick Reference — Useful Commands
-
-```bash
-# Local dev
-cd autosecure && uvicorn autosecure.core.app:app --reload --port 8000
-cd dashboard && npm run dev -- --port 3000
-
-# Server deploy
-git push origin main
-ssh root@104.168.24.47
-cd /opt/autosec && git pull
-cd dashboard && npm run build
-pm2 restart all
-
-# Server logs
-tail -f /var/log/autosec-api.log
-tail -f /var/log/autosec-dash.log
-pm2 logs
-
-# Database
-psql -U autosecure -d autosecure
-alembic upgrade head
-alembic revision --autogenerate -m "description"
-
-# Clean rebuild
-rm -rf dashboard/.next && npm run build
-pkill -f "next start" && npm start
-
-# SSL
-certbot --nginx -d autosecure.me
-```
-
-### D. File Tree (Completed — Target State)
+## Project File Tree (Completed — Target)
 
 ```
 autosec/
 ├── autosecure/
-│   ├── core/              # App factory, config, DB, Redis, state, logging
+│   ├── core/              # App factory, config, DB, Redis, state, logging, deps
 │   ├── models/            # 32 SQLAlchemy models
 │   ├── db/                # Repository classes (12)
 │   ├── api/
-│   │   ├── auth.py        # JWT auth endpoints
-│   │   ├── models/        # Pydantic schemas
-│   │   └── routes/v1/     # All route modules (11 files)
-│   ├── services/          # Business logic (MS auth, Hypixel, etc.)
+│   │   ├── auth.py        # JWT auth
+│   │   ├── health.py      # Health endpoint
+│   │   ├── models/        # Pydantic schemas (7 files)
+│   │   └── routes/v1/     # Route modules (9 files)
+│   ├── services/          # Business logic
 │   ├── tasks/             # Background tasks (7)
-│   ├── bot/               # Discord bot (controller + worker)
-│   ├── ui/                # Discord embed builders
-│   └── utils/             # Generators, validators, HTTP helpers
+│   ├── bot/               # Discord bot (not started)
+│   └── utils/             # Generators, validators
 ├── dashboard/
 │   ├── app/
-│   │   ├── (dashboard)/   # Pages with sidebar (8 pages)
-│   │   ├── login/         # Auth page (no sidebar)
-│   │   ├── status/        # Public status page (no auth, no sidebar)
-│   │   ├── layout.tsx     # Root layout
-│   │   └── providers.tsx  # QueryClient + toast
+│   │   ├── (dashboard)/   # Sidebar pages (8)
+│   │   ├── login/         # Auth page
+│   │   ├── status/        # Public status page (Sprint 5)
+│   │   ├── layout.tsx     # Root layout (html/body/providers)
+│   │   └── providers.tsx
 │   ├── components/
-│   │   ├── ui/            # shadcn-style primitives (Card, Button, etc.)
-│   │   ├── sidebar.tsx    # Navigation
-│   │   └── *.tsx          # Feature components
+│   │   └── ui/            # shadcn-style primitives
 │   └── lib/
 │       ├── api.ts         # API client
-│       ├── types.ts       # TypeScript types
-│       └── hooks/         # TanStack Query hooks
-├── DEVELOPMENT_PLAN.md    # This file
-├── config.yaml            # Server config
-└── pyproject.toml         # Python project config
+│       └── types.ts       # TypeScript types (Sprint 1)
+├── DEVELOPMENT_PLAN.md
+├── config.yaml
+└── pyproject.toml
 ```

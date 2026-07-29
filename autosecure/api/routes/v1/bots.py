@@ -25,6 +25,7 @@ def _bot_response(bot: AutoSecure) -> BotResponse:
         user_id=bot.user_id,
         botnumber=bot.botnumber,
         status=status,
+        created_at=bot.created_at,
     )
 
 

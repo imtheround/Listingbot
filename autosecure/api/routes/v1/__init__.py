@@ -7,6 +7,7 @@ from fastapi import APIRouter
 from autosecure.api.routes.v1.accounts import router as accounts_router
 from autosecure.api.routes.v1.admin import router as admin_router
 from autosecure.api.routes.v1.bots import router as bots_router
+from autosecure.api.routes.v1.dashboard import router as dashboard_router
 from autosecure.api.routes.v1.emails import router as emails_router
 from autosecure.api.routes.v1.health import router as health_router
 from autosecure.api.routes.v1.licenses import router as licenses_router
@@ -23,3 +24,4 @@ router.include_router(emails_router)
 router.include_router(webhooks_router)
 router.include_router(health_router)
 router.include_router(admin_router)
+router.include_router(dashboard_router)

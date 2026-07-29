@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from sqlalchemy import JSON, Boolean, Integer, String
+import datetime
+
+from sqlalchemy import JSON, Boolean, DateTime, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from autosecure.models import Base, EncryptedString
@@ -21,6 +23,9 @@ class AutoSecure(Base):
     activity: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     verified: Mapped[bool] = mapped_column(Boolean, default=False)
     dmmode: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
 
     def __repr__(self) -> str:
         return f"<AutoSecure id={self.id} user_id={self.user_id!r}>"
