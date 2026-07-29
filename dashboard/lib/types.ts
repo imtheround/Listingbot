@@ -41,8 +41,21 @@ export interface BotResponse {
   created_at: string | null;
 }
 
+export interface BotDetailResponse extends BotResponse {
+  domain: string;
+  verified: boolean;
+  dmmode: boolean;
+  activity: Record<string, unknown> | null;
+}
+
 export interface BotCreateRequest {
   token: string;
+}
+
+export interface BotUpdateRequest {
+  domain?: string;
+  activity?: Record<string, unknown> | null;
+  dmmode?: boolean;
 }
 
 export interface BotRestartResponse {

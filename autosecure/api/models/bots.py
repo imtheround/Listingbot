@@ -10,7 +10,6 @@ from pydantic import BaseModel
 class BotCreate(BaseModel):
     """Request body to create a new bot instance."""
 
-    user_id: str
     token: str
 
 
