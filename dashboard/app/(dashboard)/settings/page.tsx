@@ -94,7 +94,7 @@ export default function SettingsPage() {
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Role</span>
-            <span>{(profile?.permissions as Record<string, unknown>)?.role || "user"}</span>
+            <span>{String((profile?.permissions as Record<string, unknown>)?.role || "user")}</span>
           </div>
         </CardContent>
       </Card>
@@ -113,7 +113,7 @@ export default function SettingsPage() {
             <button
               onClick={() =>
                 updateSettings.mutate({
-                  showleaderboard: !(profile?.permissions as Record<string, unknown>)?.showleaderboard,
+                  showleaderboard: !((profile?.permissions as Record<string, unknown>)?.showleaderboard as boolean),
                 })
               }
               disabled={updateSettings.isPending}
