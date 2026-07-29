@@ -1,6 +1,11 @@
+"use client";
+
 import { Sidebar } from "@/components/sidebar";
+import { useSSE } from "@/lib/hooks/useSSE";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  useSSE();
+
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
