@@ -3,6 +3,26 @@
 > Complete guide for translating the JS codebase to Python, optimizing it,
 > making it enterprise-grade, and website-ready.
 
+## Current Status (2026-07-28)
+
+| Layer | Status |
+|---|---|
+| Models (32 SQLAlchemy tables) | Done |
+| Config system (YAML + Pydantic) | Done |
+| Database (PostgreSQL + Alembic) | Done |
+| Redis integration | Done |
+| FastAPI app lifecycle + lifespan | Done |
+| API routes (33 endpoints) | Done |
+| API auth (JWT login/refresh/logout) | Done |
+| Background tasks (7 tasks in APScheduler) | Done |
+| Admin dashboard (Next.js 15) | Done |
+| RBAC middleware | Partial |
+| Audit logging | Pending |
+| Discord bot integration | Pending |
+| Deployed to production | Done (104.168.24.47) |
+
+**Running:** API on `:8000`, Dashboard on `:3000` — both behind ufw firewall with CORS configured.
+
 ---
 
 ## Table of Contents
@@ -780,20 +800,20 @@ export async function login(formData: FormData) {
 **Goal:** Working Python project with database, config, and basic infrastructure.
 
 **Deliverables:**
-- [ ] `pyproject.toml` with all dependencies
-- [ ] `config.yaml` + `.env` with all settings
-- [ ] `core/config.py` — Pydantic Settings (typed, validated)
-- [ ] `core/database.py` — SQLAlchemy async engine + session
-- [ ] `core/redis.py` — Redis connection pool
-- [ ] `core/state.py` — Global state holder
-- [ ] `core/logging.py` — structlog setup
-- [ ] `core/exceptions.py` — Exception hierarchy
-- [ ] `core/middleware.py` — CORS, error handling, request logging
-- [ ] `core/deps.py` — FastAPI dependency injection
-- [ ] `core/app.py` — FastAPI app factory with lifespan
-- [ ] All SQLAlchemy models (30+ tables)
-- [ ] All repository classes (12 repos)
-- [ ] Alembic migration setup + initial migration
+- [x] `pyproject.toml` with all dependencies
+- [x] `config.yaml` + `.env` with all settings
+- [x] `core/config.py` — Pydantic Settings
+- [x] `core/database.py` — SQLAlchemy async engine + session
+- [x] `core/redis.py` — Redis connection pool
+- [x] `core/state.py` — Global state holder
+- [x] `core/logging.py` — structlog setup
+- [x] `core/exceptions.py` — Exception hierarchy
+- [x] `core/middleware.py` — CORS, error handling, request logging
+- [x] `core/deps.py` — FastAPI dependency injection
+- [x] `core/app.py` — FastAPI app factory with lifespan
+- [x] All SQLAlchemy models (30+ tables)
+- [x] All repository classes (12 repos)
+- [x] Alembic migration setup + initial migration
 - [ ] `utils/` — generate, validators, http client, countries, languages
 
 **Testing:** Unit tests for all models and repositories.
@@ -822,37 +842,36 @@ export async function login(formData: FormData) {
 **Goal:** Full REST API + working Next.js web dashboard.
 
 **Deliverables:**
-- [ ] `api/auth.py` — JWT login/refresh/logout
-- [ ] `api/accounts.py` — Full CRUD + stats
-- [ ] `api/bots.py` — Bot management
-- [ ] `api/licenses.py` — Redeem, transfer, status
-- [ ] `api/users.py` — Profile + settings
-- [ ] `api/emails.py` — Email inbox
-- [ ] `api/webhooks.py` — Webhook management
-- [ ] `api/health.py` — Health checks
-- [ ] `api/admin.py` — Admin endpoints
+- [x] `api/auth.py` — JWT login/refresh/logout
+- [x] `api/accounts.py` — Full CRUD + stats
+- [x] `api/bots.py` — Bot management
+- [x] `api/licenses.py` — Redeem, transfer, status
+- [x] `api/users.py` — Profile + settings
+- [x] `api/emails.py` — Email inbox
+- [x] `api/webhooks.py` — Webhook management
+- [x] `api/health.py` — Health checks
+- [x] `api/admin.py` — Admin endpoints
 - [ ] `api/events.py` — SSE endpoint for real-time dashboard updates
-- [ ] `api/models/` — All Pydantic request/response schemas
-- [ ] **`dashboard/`** — Next.js 15 frontend project
-  - [ ] `dashboard/lib/api.ts` — API client wrapper
+- [x] `api/models/` — All Pydantic request/response schemas
+- [x] **`dashboard/`** — Next.js 15 frontend project
+  - [x] `dashboard/lib/api.ts` — API client wrapper
   - [ ] `dashboard/lib/types.ts` — TypeScript types mirroring Pydantic models
   - [ ] `dashboard/lib/hooks/` — TanStack Query hooks
-  - [ ] `dashboard/components/` — Shared UI (sidebar, navbar, charts, tables)
-  - [ ] `dashboard/app/(auth)/login/` — Login page
-  - [ ] `dashboard/app/(dashboard)/` — Overview page (stats cards, charts, activity)
-  - [ ] `dashboard/app/(dashboard)/accounts/` — Accounts table + detail
-  - [ ] `dashboard/app/(dashboard)/bots/` — Bot management
-  - [ ] `dashboard/app/(dashboard)/licenses/` — License management
-  - [ ] `dashboard/app/(dashboard)/emails/` — Email inbox viewer
-  - [ ] `dashboard/app/(dashboard)/settings/` — User settings
-  - [ ] `dashboard/app/(dashboard)/logs/` — Activity logs
-  - [ ] `dashboard/app/status/` — Public status page
-- [ ] RBAC middleware
+  - [x] `dashboard/components/` — Shared UI (sidebar, navbar, cards, tables)
+  - [x] `dashboard/app/login` — Login page with JWT + cookie auth
+  - [x] `dashboard/app/` — Overview page (stats cards, system health)
+  - [x] `dashboard/app/accounts` — Accounts table + detail
+  - [x] `dashboard/app/bots` — Bot management
+  - [x] `dashboard/app/licenses` — License management
+  - [x] `dashboard/app/emails` — Email inbox viewer  
+  - [x] `dashboard/app/settings` — User settings
+  - [x] `dashboard/app/logs` — Activity logs (placeholder)
+  - [ ] `dashboard/app/status` — Public status page
+- [x] RBAC middleware (owner-only decorator done)
 - [ ] Audit logging
-- [ ] Rate limiting
+- [x] Rate limiting
 - [ ] Idempotency support
-- [ ] Remove old Jinja2 `dashboard/app.py` and `dashboard/auth.py`
-- [ ] FastAPI `StaticFiles` mount for serving Next.js export in production
+- [x] Remove old Jinja2 `dashboard/app.py` and `dashboard/auth.py`
 
 **Testing:** API integration tests with test client; frontend E2E with Playwright.
 
