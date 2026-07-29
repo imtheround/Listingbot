@@ -2,18 +2,16 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select
 
+from autosecure.core.deps import CurrentUser, DBSession
 from autosecure.db.users import UserRepo
 from autosecure.models.settings import UserSettings
 from autosecure.models.license import UsedLicense
-
-if TYPE_CHECKING:
-    from autosecure.core.deps import CurrentUser, DBSession
 
 router = APIRouter(prefix="/users", tags=["users"])
 

@@ -3,19 +3,18 @@
 from __future__ import annotations
 
 import secrets
-from typing import TYPE_CHECKING
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from autosecure.core.deps import DBSession, OwnerUser
+from autosecure.core.database import get_db
 from autosecure.db.users import UserRepo
 from autosecure.models.blacklist import Blacklisted
 from autosecure.models.license import License, UsedLicense
 from autosecure.models.user import User
-
-if TYPE_CHECKING:
-    from autosecure.core.deps import DBSession, OwnerUser
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 

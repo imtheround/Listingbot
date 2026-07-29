@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, EmailStr
 
+from autosecure.core.deps import CurrentUser, DBSession
 from autosecure.db.emails import EmailRepo
-
-if TYPE_CHECKING:
-    from autosecure.core.deps import CurrentUser, DBSession
 
 router = APIRouter(prefix="/emails", tags=["emails"])
 

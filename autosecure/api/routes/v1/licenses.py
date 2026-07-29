@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+from __future__ import annotations
+
 import datetime
-from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from autosecure.api.models.licenses import (
     LicenseRedeemRequest,
@@ -13,14 +15,10 @@ from autosecure.api.models.licenses import (
     LicenseTransferRequest,
 )
 from autosecure.core.database import get_db
+from autosecure.core.deps import CurrentUser, DBSession
 from autosecure.core.exceptions import LicenseNotFound
 from autosecure.db.licenses import LicenseRepo
 from autosecure.models.license import License
-
-if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncSession
-
-    from autosecure.core.deps import CurrentUser, DBSession
 
 router = APIRouter(prefix="/licenses", tags=["licenses"])
 

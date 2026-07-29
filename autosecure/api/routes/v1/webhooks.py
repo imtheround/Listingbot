@@ -2,16 +2,14 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, HttpUrl
 from sqlalchemy import select
 
+from autosecure.core.deps import CurrentUser, DBSession
 from autosecure.models.webhook import WebhookSubscription
-
-if TYPE_CHECKING:
-    from autosecure.core.deps import CurrentUser, DBSession
 
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 

@@ -2,17 +2,15 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from __future__ import annotations
 
 from fastapi import APIRouter
 
 import autosecure.core.database as _db
 import autosecure.core.redis as _redis
 from autosecure.api.models.common import HealthResponse
+from autosecure.core.deps import OwnerUser
 from autosecure.core.state import state
-
-if TYPE_CHECKING:
-    from autosecure.core.deps import OwnerUser
 
 router = APIRouter(tags=["health"])
 

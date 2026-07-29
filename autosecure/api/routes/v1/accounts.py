@@ -3,16 +3,12 @@
 from __future__ import annotations
 
 import math
-from typing import TYPE_CHECKING
-
 from fastapi import APIRouter, HTTPException, Query
 
 from autosecure.api.models.accounts import AccountCreate, AccountListResponse, AccountResponse
+from autosecure.core.deps import CurrentUser, DBSession
 from autosecure.db.accounts import AccountRepo
 from autosecure.services.hypixel import get_player_stats
-
-if TYPE_CHECKING:
-    from autosecure.core.deps import CurrentUser, DBSession
 
 router = APIRouter(prefix="/accounts", tags=["accounts"])
 

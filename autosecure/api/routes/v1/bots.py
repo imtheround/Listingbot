@@ -2,17 +2,17 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from __future__ import annotations
+
+from typing import Annotated
 
 from fastapi import APIRouter, HTTPException
 
 from autosecure.api.models.bots import BotCreate, BotResponse, BotRestartResponse
+from autosecure.core.deps import CurrentUser, DBSession
 from autosecure.core.state import state
 from autosecure.db.bots import BotRepo
 from autosecure.models.bot import AutoSecure
-
-if TYPE_CHECKING:
-    from autosecure.core.deps import CurrentUser, DBSession
 
 router = APIRouter(prefix="/bots", tags=["bots"])
 
