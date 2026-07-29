@@ -9,7 +9,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision = "sprint_a_001"
-down_revision = None
+down_revision = "ac9f1e1dc778"
 branch_labels = None
 depends_on = None
 
