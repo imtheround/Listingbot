@@ -5,7 +5,7 @@ from __future__ import annotations
 import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, String, func
+from sqlalchemy import DateTime, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from autosecure.models import Base, EncryptedString
@@ -21,7 +21,7 @@ class Quarantine(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     user_id: Mapped[str] = mapped_column(String, index=True)
-    uuid: Mapped[str] = mapped_column(String)
+    uuid: Mapped[str] = mapped_column(ForeignKey("accounts.uid"))
     ssid: Mapped[str] = mapped_column(EncryptedString())
     username: Mapped[str] = mapped_column(String)
     created_at: Mapped[datetime.datetime] = mapped_column(
