@@ -1,6 +1,13 @@
 # AutoSecure Configuration
 # Copy to config.yaml and fill in your values
 
+# hCaptcha Verification
+hcaptcha:
+  site_key: ""              # Set in .env
+  secret_key: ""            # Set in .env
+  verify_url: "https://api.hcaptcha.com/siteverify"
+  enabled: true
+
 # Discord Bot Configuration
 discord:
   tokens:
