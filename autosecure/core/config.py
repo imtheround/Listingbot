@@ -184,10 +184,24 @@ class Settings(BaseSettings):
     model_config = {"env_prefix": "AUTOSECURE_", "env_nested_delimiter": "__"}
 
 
+def _strip_empty_strings(data: Any) -> Any:
+    """Recursively remove empty-string values so env vars can override."""
+    if isinstance(data, dict):
+        return {
+            k: _strip_empty_strings(v)
+            for k, v in data.items()
+            if v != ""
+        }
+    if isinstance(data, list):
+        return [_strip_empty_strings(v) for v in data if v != ""]
+    return data
+
+
 def load_settings() -> Settings:
     """Load settings from YAML config with environment variable overrides."""
     yaml_data = _load_yaml_config()
-    return Settings(**yaml_data)
+    cleaned = _strip_empty_strings(yaml_data)
+    return Settings(**cleaned)
 
 
 settings = load_settings()
