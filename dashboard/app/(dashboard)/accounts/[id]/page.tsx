@@ -3,28 +3,19 @@
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { apiFetch } from "@/lib/api";
+import type { AccountResponse } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { formatDate } from "@/lib/utils";
-
-interface AccountDetail {
-  uuid: string;
-  ign: string;
-  email: string;
-  status: string;
-  created_at: string;
-  last_login: string | null;
-  licenses: { id: number; type: string; status: string; expires_at: string }[];
-}
+import { EmptyState } from "@/components/empty-state";
 
 export default function AccountDetailPage() {
   const params = useParams();
-  const { data: account, isLoading } = useQuery<AccountDetail>({
+  const { data: account, isLoading } = useQuery<AccountResponse>({
     queryKey: ["account", params.id],
-    queryFn: () => apiFetch(`/api/v1/accounts/${params.id}`),
+    queryFn: () => apiFetch<AccountResponse>(`/api/v1/accounts/${params.id}`),
   });
 
   if (isLoading) {
@@ -37,7 +28,7 @@ export default function AccountDetailPage() {
   }
 
   if (!account) {
-    return <div className="text-sm text-muted-foreground">Account not found</div>;
+    return <EmptyState title="Account not found" description="This account may have been deleted." />;
   }
 
   return (
@@ -49,12 +40,9 @@ export default function AccountDetailPage() {
           </Button>
         </Link>
         <div>
-          <h2 className="text-lg font-semibold">{account.ign}</h2>
-          <p className="text-sm text-muted-foreground font-mono">{account.uuid}</p>
+          <h2 className="text-lg font-semibold">{account.username}</h2>
+          <p className="text-sm text-muted-foreground font-mono">{account.uid}</p>
         </div>
-        <Badge variant={account.status === "active" ? "success" : "secondary"}>
-          {account.status}
-        </Badge>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -63,54 +51,35 @@ export default function AccountDetailPage() {
             <CardTitle className="text-sm font-medium">Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Email</span>
-              <span>{account.email}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Status</span>
-              <Badge variant={account.status === "active" ? "success" : "secondary"}>
-                {account.status}
-              </Badge>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Created</span>
-              <span>{formatDate(account.created_at)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Last Login</span>
-              <span>{account.last_login ? formatDate(account.last_login) : "Never"}</span>
-            </div>
+            <Row label="Username" value={account.username} />
+            <Row label="UID" value={account.uid} mono />
+            <Row label="Email" value={account.email ?? "—"} />
+            <Row label="Networth" value={account.networth != null ? account.networth.toLocaleString() : "—"} />
+            <Row label="Created" value={formatDate(account.created_at)} />
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-medium">Licenses</CardTitle>
+            <CardTitle className="text-sm font-medium">Stats</CardTitle>
           </CardHeader>
           <CardContent>
-            {account.licenses?.length ? (
-              <div className="space-y-2">
-                {account.licenses.map((lic) => (
-                  <div key={lic.id} className="flex items-center justify-between border p-3">
-                    <div>
-                      <p className="text-sm font-medium">{lic.type}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Expires {formatDate(lic.expires_at)}
-                      </p>
-                    </div>
-                    <Badge variant={lic.status === "active" ? "success" : "secondary"}>
-                      {lic.status}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No licenses</p>
-            )}
+            <p className="text-sm text-muted-foreground">
+              Use the <span className="font-mono text-xs">/api/v1/accounts/{account.uid}/stats</span> endpoint
+              to fetch live Hypixel stats for this account.
+            </p>
           </CardContent>
         </Card>
       </div>
+    </div>
+  );
+}
+
+function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="flex justify-between">
+      <span className="text-muted-foreground">{label}</span>
+      <span className={mono ? "font-mono text-xs" : ""}>{value}</span>
     </div>
   );
 }
