@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Users, Bot, Key, Mail, Settings, ShieldCheck, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, Bot, Key, Mail, Settings, ShieldCheck, LogOut, ScrollText, Webhook } from "lucide-react";
 
 const nav = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
@@ -10,6 +10,8 @@ const nav = [
   { href: "/bots", label: "Bots", icon: Bot },
   { href: "/licenses", label: "Licenses", icon: Key },
   { href: "/emails", label: "Emails", icon: Mail },
+  { href: "/logs", label: "Logs", icon: ScrollText },
+  { href: "/webhooks", label: "Webhooks", icon: Webhook },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

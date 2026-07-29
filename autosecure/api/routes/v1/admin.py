@@ -6,12 +6,13 @@ import secrets
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from autosecure.core.deps import DBSession, OwnerUser
 from autosecure.core.database import get_db
 from autosecure.db.users import UserRepo
+from autosecure.models.audit import AuditLog
 from autosecure.models.blacklist import Blacklisted
 from autosecure.models.license import License, UsedLicense
 from autosecure.models.user import User
@@ -56,6 +57,25 @@ class AdminLicenseResponse(BaseModel):
 class AdminLicenseListResponse(BaseModel):
     licenses: list[AdminLicenseResponse]
     total: int
+
+
+class AuditLogResponse(BaseModel):
+    id: int
+    timestamp: str
+    actor_id: str
+    action: str
+    target_type: str | None = None
+    target_id: str | None = None
+    details: dict | None = None
+    success: bool
+    ip_address: str | None = None
+
+
+class AuditLogListResponse(BaseModel):
+    logs: list[AuditLogResponse]
+    total: int
+    page: int
+    pages: int
 
 
 @router.get("/users", response_model=AdminUserListResponse)
@@ -164,3 +184,60 @@ async def generate_licenses(
 
     await db.flush()
     return LicenseGenerateResponse(licenses=keys, count=body.count)
+
+
+@router.get("/logs", response_model=AuditLogListResponse)
+async def list_audit_logs(
+    owner: OwnerUser,
+    db: DBSession,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=200),
+    action: str | None = None,
+    actor_id: str | None = None,
+    target_type: str | None = None,
+    success: bool | None = None,
+) -> AuditLogListResponse:
+    """List audit logs with optional filters (owner only)."""
+    stmt = select(AuditLog)
+    count_stmt = select(func.count()).select_from(AuditLog)
+
+    if action:
+        stmt = stmt.where(AuditLog.action == action)
+        count_stmt = count_stmt.where(AuditLog.action == action)
+    if actor_id:
+        stmt = stmt.where(AuditLog.actor_id == actor_id)
+        count_stmt = count_stmt.where(AuditLog.actor_id == actor_id)
+    if target_type:
+        stmt = stmt.where(AuditLog.target_type == target_type)
+        count_stmt = count_stmt.where(AuditLog.target_type == target_type)
+    if success is not None:
+        stmt = stmt.where(AuditLog.success == success)
+        count_stmt = count_stmt.where(AuditLog.success == success)
+
+    total_result = await db.execute(count_stmt)
+    total = total_result.scalar_one()
+
+    offset = (page - 1) * per_page
+    stmt = stmt.order_by(AuditLog.timestamp.desc()).limit(per_page).offset(offset)
+    result = await db.execute(stmt)
+    logs = list(result.scalars().all())
+
+    return AuditLogListResponse(
+        logs=[
+            AuditLogResponse(
+                id=log.id,
+                timestamp=log.timestamp.isoformat() if log.timestamp else "",
+                actor_id=log.actor_id,
+                action=log.action,
+                target_type=log.target_type,
+                target_id=log.target_id,
+                details=log.details,
+                success=log.success,
+                ip_address=log.actor_ip,
+            )
+            for log in logs
+        ],
+        total=total,
+        page=page,
+        pages=max(1, -(-total // per_page)),
+    )

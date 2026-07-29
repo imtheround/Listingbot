@@ -5,6 +5,7 @@ from __future__ import annotations
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
+from passlib.hash import bcrypt
 from pydantic import BaseModel
 from sqlalchemy import select
 
@@ -35,6 +36,39 @@ class UserSettingsUpdate(BaseModel):
 class UserSettingsResponse(BaseModel):
     user_id: str
     showleaderboard: bool
+
+
+class PasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+class PasswordChangeResponse(BaseModel):
+    success: bool
+    message: str
+
+
+@router.get("/me", response_model=UserProfileResponse)
+async def get_my_profile(
+    current_user: CurrentUser,
+    db: DBSession,
+) -> UserProfileResponse:
+    """Get the authenticated user's profile."""
+    repo = UserRepo(db)
+    user = await repo.get(current_user)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    settings_stmt = select(UserSettings).where(UserSettings.user_id == current_user)
+    settings_result = await db.execute(settings_stmt)
+    user_settings = settings_result.scalar_one_or_none()
+
+    return UserProfileResponse(
+        user_id=user.user_id,
+        permissions={**user.permissions, "showleaderboard": user_settings.showleaderboard if user_settings else True},
+        claiming=user.claiming,
+        rest_split=user.rest_split,
+    )
 
 
 @router.get("/{user_id}", response_model=UserProfileResponse)
@@ -111,3 +145,32 @@ async def update_settings(
         user_id=user_id,
         showleaderboard=settings.showleaderboard,
     )
+
+
+@router.put("/{user_id}/password", response_model=PasswordChangeResponse)
+async def change_password(
+    user_id: str,
+    body: PasswordChangeRequest,
+    current_user: CurrentUser,
+    db: DBSession,
+) -> PasswordChangeResponse:
+    """Change user password."""
+    if current_user != user_id:
+        raise HTTPException(status_code=403, detail="Cannot change another user's password")
+
+    repo = UserRepo(db)
+    user = await repo.get(user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    stored_hash = user.permissions.get("password_hash", "")
+    if not stored_hash or not bcrypt.verify(body.current_password, stored_hash):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+
+    new_hash = bcrypt.hash(body.new_password)
+    perms = dict(user.permissions)
+    perms["password_hash"] = new_hash
+    user.permissions = perms
+    await db.flush()
+
+    return PasswordChangeResponse(success=True, message="Password updated")
