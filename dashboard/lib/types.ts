@@ -150,6 +150,11 @@ export interface UserSettingsUpdate {
   showleaderboard?: boolean;
 }
 
+export interface PasswordChangeResponse {
+  success: boolean;
+  message: string;
+}
+
 export interface AdminUserResponse {
   user_id: string;
   permissions: Record<string, unknown>;
