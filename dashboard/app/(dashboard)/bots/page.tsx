@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { apiFetch, apiPost, apiDelete } from "@/lib/api";
-import type { BotResponse, BotCreateRequest } from "@/lib/types";
+import type { BotResponse, BotCreateRequest, BotRestartResponse } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +24,7 @@ export default function BotsPage() {
   });
 
   const startBot = useMutation({
-    mutationFn: (id: number) => apiPost(`/api/v1/bots/${id}/start`),
+    mutationFn: (id: number) => apiPost<BotRestartResponse>(`/api/v1/bots/${id}/start`),
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["bots"] });
       toast.success(data.message);
@@ -33,7 +33,7 @@ export default function BotsPage() {
   });
 
   const stopBot = useMutation({
-    mutationFn: (id: number) => apiPost(`/api/v1/bots/${id}/stop`),
+    mutationFn: (id: number) => apiPost<BotRestartResponse>(`/api/v1/bots/${id}/stop`),
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["bots"] });
       toast.success(data.message);
@@ -42,7 +42,7 @@ export default function BotsPage() {
   });
 
   const restartBot = useMutation({
-    mutationFn: (id: number) => apiPost(`/api/v1/bots/${id}/restart`),
+    mutationFn: (id: number) => apiPost<BotRestartResponse>(`/api/v1/bots/${id}/restart`),
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["bots"] });
       toast.success(data.message);

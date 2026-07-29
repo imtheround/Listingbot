@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { apiFetch, apiPut, apiPost, apiDelete } from "@/lib/api";
-import type { BotDetailResponse, BotUpdateRequest } from "@/lib/types";
+import type { BotDetailResponse, BotUpdateRequest, BotRestartResponse } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,7 +50,7 @@ export default function BotDetailPage() {
   });
 
   const startBot = useMutation({
-    mutationFn: () => apiPost(`/api/v1/bots/${params.id}/start`),
+    mutationFn: () => apiPost<BotRestartResponse>(`/api/v1/bots/${params.id}/start`),
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["bot", params.id] });
       toast.success(data.message);
@@ -59,7 +59,7 @@ export default function BotDetailPage() {
   });
 
   const stopBot = useMutation({
-    mutationFn: () => apiPost(`/api/v1/bots/${params.id}/stop`),
+    mutationFn: () => apiPost<BotRestartResponse>(`/api/v1/bots/${params.id}/stop`),
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["bot", params.id] });
       toast.success(data.message);
@@ -68,7 +68,7 @@ export default function BotDetailPage() {
   });
 
   const restartBot = useMutation({
-    mutationFn: () => apiPost(`/api/v1/bots/${params.id}/restart`),
+    mutationFn: () => apiPost<BotRestartResponse>(`/api/v1/bots/${params.id}/restart`),
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["bot", params.id] });
       toast.success(data.message);
