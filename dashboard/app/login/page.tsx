@@ -18,10 +18,11 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(
-        (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") + "/auth/login",
-        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) }
-      );
+      const res = await fetch("/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.detail || "Login failed");

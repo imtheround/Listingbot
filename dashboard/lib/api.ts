@@ -1,5 +1,3 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
 function getToken(): string | null {
   if (typeof window === "undefined") return null;
   try {
@@ -19,13 +17,15 @@ export async function apiFetch<T>(
   };
   if (token) headers["Authorization"] = "Bearer " + token;
 
-  const url = path.startsWith("http") ? path : API_BASE + path;
+  const url = path.startsWith("http") ? path : path;
   const res = await fetch(url, { ...options, headers });
 
   if (!res.ok) {
     if (res.status === 401) {
       localStorage.removeItem("access_token");
+      document.cookie = "auth_token=; path=/; max-age=0";
       window.location.href = "/login";
+      throw new Error("Unauthorized");
     }
     const body = await res.json().catch(() => ({ detail: res.statusText }));
     throw new Error(body.detail || body.message || "Request failed: " + res.status);
