@@ -13,11 +13,14 @@ log = get_logger("services.security")
 
 # Known bot user-agents to block
 BOT_USER_AGENTS = frozenset([
-    "bot", "crawler", "spider", "scrapy", "curl", "wget",
+    "bot", "crawler", "spider", "scrapy",
     "python-requests", "httpclient", "go-http-client", "python-urllib",
     "masscan", "nmap", "nikto", "sqlmap", "dirbuster", "gobuster",
     "zgrab", "censys", "shodan", "netcraft",
 ])
+
+# IPs to never block (server itself, etc.)
+ALLOWED_IPS = frozenset({"104.168.24.47", "127.0.0.1", "::1"})
 
 
 @dataclass
@@ -69,6 +72,10 @@ class AntiAbuseDetector:
     ) -> dict[str, Any]:
         """Check if this request should be allowed. Returns action dict."""
         now = time.time()
+
+        # Skip checks for allowed IPs
+        if ip in ALLOWED_IPS:
+            return {"blocked": False, "warning": False}
 
         # 1. IP blocked?
         if ip in self._blocked_ips:

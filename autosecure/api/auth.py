@@ -12,7 +12,7 @@ import jwt
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 
-from autosecure.api.models.auth import LoginResponse, RefreshRequest
+from autosecure.api.models.auth import LoginResponse, RefreshRequest, LoginRequest
 from autosecure.core.config import settings
 from autosecure.core.database import get_db
 from autosecure.core.exceptions import Unauthorized
@@ -189,6 +189,34 @@ async def google_callback(
     # 9. Redirect to frontend callback with tokens as query params
     callback_url = f"/auth/google/callback?access_token={tokens['access_token']}&refresh_token={tokens['refresh_token']}"
     return RedirectResponse(url=callback_url)
+
+
+@router.post("/login", response_model=LoginResponse)
+async def login(
+    body: LoginRequest,
+    db: AsyncSession = Depends(get_db),
+) -> LoginResponse:
+    """Email + password login. Returns JWT tokens."""
+    repo = UserRepo(db)
+    user = await repo.get_by_email(body.email)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    # Check password hash in permissions dict
+    from passlib.hash import bcrypt
+    stored_hash = user.permissions.get("password_hash", "")
+    if not stored_hash or not bcrypt.verify(body.password, stored_hash):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    # Check if banned
+    if user.is_banned or user.role == "banned":
+        raise HTTPException(status_code=403, detail="Account is banned")
+
+    # Record login
+    await repo.record_login(user.user_id)
+
+    tokens = _issue_tokens(user.user_id)
+    return LoginResponse(**tokens)
 
 
 # ── Token Management ──────────────────────────────────────────────────

@@ -22,8 +22,14 @@ log = get_logger("middleware.security")
 anti_abuse = AntiAbuseDetector()
 
 # Paths to skip anti-abuse checks
-SKIP_PATHS = frozenset({"/health", "/docs", "/openapi.json", "/redoc"})
+SKIP_PATHS = frozenset({
+    "/health", "/docs", "/openapi.json", "/redoc",
+    "/api/v1/health", "/api/v1/public/status",
+})
 SKIP_PREFIXES = frozenset({"/static", "/_next"})
+
+# IPs to always allow (e.g., server's own IP)
+ALLOWED_IPS = frozenset({"104.168.24.47", "127.0.0.1", "::1"})
 
 
 class SecurityMiddleware(BaseHTTPMiddleware):
@@ -44,6 +50,10 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         user_agent = request.headers.get("user-agent", "")
         method = request.method
         content_length = int(request.headers.get("content-length", 0))
+
+        # Allow trusted IPs (server's own IP for health checks)
+        if client_ip in ALLOWED_IPS:
+            return await call_next(request)
 
         # Extract user_id from Authorization header if present
         user_id = None
