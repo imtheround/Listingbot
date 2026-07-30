@@ -80,13 +80,13 @@ class AntiAbuseDetector:
                 }
             del self._blocked_ips[ip]
 
-        # 2. Login cooldown (5s per IP on failed attempts)
+        # 2. Login cooldown (1s per IP on failed attempts — prevents rapid brute force)
         if ip in self._login_cooldowns:
             if now < self._login_cooldowns[ip]:
-                remaining = int(self._login_cooldowns[ip] - now)
+                remaining = int(self._login_cooldowns[ip] - now) + 1
                 return {
                     "blocked": True,
-                    "reason": f"Login cooldown active, wait {remaining}s",
+                    "reason": f"Please wait {remaining}s before trying again",
                     "retry_after": remaining,
                 }
             del self._login_cooldowns[ip]
@@ -134,16 +134,16 @@ class AntiAbuseDetector:
                 "retry_after": 900,
             }
 
-        # 7. Request spam prevention (POST/PUT/DELETE only, same method+path+body within 2s)
+        # 7. Request spam prevention (POST/PUT/DELETE only, same method+path within 1s)
         if method in ("POST", "PUT", "DELETE"):
             body_key = f"spam:{method}:{path}"
             last_seen = self._spam_keys.get(body_key)
-            if last_seen and (now - last_seen) < 2.0:
+            if last_seen and (now - last_seen) < 1.0:
                 self._log_event("request_spam", ip, user_agent, user_id, details={"path": path})
                 return {
                     "blocked": True,
-                    "reason": "Duplicate request (2s cooldown)",
-                    "retry_after": int(2.0 - (now - last_seen)),
+                    "reason": "Duplicate request (1s cooldown)",
+                    "retry_after": int(1.0 - (now - last_seen)),
                 }
             self._spam_keys[body_key] = now
             # Clean old spam keys (older than 5s)
@@ -199,24 +199,24 @@ class AntiAbuseDetector:
         failed_count = len(self._login_attempts[ip])
 
         if not success:
-            # Set 5-second cooldown per IP
-            self._login_cooldowns[ip] = now + 5
+            # Set 1-second cooldown per IP (prevents rapid brute force)
+            self._login_cooldowns[ip] = now + 1
 
-            # 5 failed logins in 10 min → block 15 min
-            if failed_count > 5:
-                self._blocked_ips[ip] = now + 900
+            # 10 failed logins in 10 min → block 10 min
+            if failed_count > 10:
+                self._blocked_ips[ip] = now + 600
                 self._log_event("login_burst_detected", ip, "", user_id, details={"attempts": failed_count})
                 return {
                     "blocked": True,
                     "reason": "Too many failed login attempts",
-                    "retry_after": 900,
+                    "retry_after": 600,
                 }
 
             return {
                 "blocked": False,
                 "warning": False,
-                "cooldown": 5,
-                "attempts_remaining": max(0, 5 - failed_count),
+                "cooldown": 1,
+                "attempts_remaining": max(0, 10 - failed_count),
             }
         else:
             # Success: clear attempts and cooldown for this IP
@@ -231,7 +231,7 @@ class AntiAbuseDetector:
         user_id: str,
         success: bool,
     ) -> dict[str, Any]:
-        """Track license redeem attempts per user. 3 failures/10min → block 30min."""
+        """Track license redeem attempts per user. 10 failures/10min → block 15min."""
         now = time.time()
 
         if user_id not in self._redeem_attempts:
@@ -246,13 +246,13 @@ class AntiAbuseDetector:
 
         failed_count = len(self._redeem_attempts[user_id])
 
-        if failed_count > 3:
-            self._blocked_ips[user_id] = now + 1800
+        if failed_count > 10:
+            self._blocked_ips[user_id] = now + 900
             self._log_event("redeem_burst_detected", "", "", user_id, details={"attempts": failed_count})
             return {
                 "blocked": True,
                 "reason": "Too many failed redeem attempts",
-                "retry_after": 1800,
+                "retry_after": 900,
             }
 
         return {"blocked": False, "warning": False}
@@ -263,7 +263,7 @@ class AntiAbuseDetector:
         self,
         user_id: str,
     ) -> dict[str, Any]:
-        """Track invoice creation per user. 5/hour → block 1 hour."""
+        """Track invoice creation per user. 20/hour → block 1 hour."""
         now = time.time()
 
         if user_id not in self._invoice_attempts:
@@ -276,11 +276,11 @@ class AntiAbuseDetector:
 
         count = len(self._invoice_attempts[user_id])
 
-        if count > 5:
+        if count > 20:
             self._log_event("invoice_spam_detected", "", "", user_id, details={"count": count})
             return {
                 "blocked": True,
-                "reason": "Too many invoice creation attempts (5/hour limit)",
+                "reason": "Too many invoice creation attempts (20/hour limit)",
                 "retry_after": 3600,
             }
 
