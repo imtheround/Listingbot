@@ -16,7 +16,7 @@ export interface UserProfile {
   email: string | null;
   name: string;
   avatar_url: string;
-  role: "user" | "admin" | "banned";
+  role: "user" | "premium" | "admin" | "banned";
   is_banned: boolean;
   ban_reason: string | null;
   banned_at: string | null;

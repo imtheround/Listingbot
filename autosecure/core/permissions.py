@@ -7,16 +7,21 @@ from enum import Enum
 
 class Role(str, Enum):
     USER = "user"
+    PREMIUM = "premium"
     ADMIN = "admin"
     BANNED = "banned"
 
 
 # Roles that can access the system (non-banned)
-VALID_ROLES = {Role.USER, Role.ADMIN}
+VALID_ROLES = {Role.USER, Role.PREMIUM, Role.ADMIN}
 
 
 def is_admin(role: str) -> bool:
     return role == Role.ADMIN
+
+
+def is_premium(role: str) -> bool:
+    return role == Role.PREMIUM
 
 
 def is_user(role: str) -> bool:
@@ -58,6 +63,11 @@ def can_promote_user(actor_role: str, target_role: str, new_role: str) -> bool:
     if target_role == Role.ADMIN:
         return False
     return True
+
+
+def has_premium_access(role: str) -> bool:
+    """Check if role has premium features."""
+    return role in {Role.PREMIUM, Role.ADMIN}
 
 
 def min_admins_check(admin_count: int) -> bool:
