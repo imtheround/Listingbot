@@ -4,13 +4,147 @@ from __future__ import annotations
 
 import math
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel
+from typing import Literal
 
 from autosecure.api.models.accounts import AccountCreate, AccountListResponse, AccountResponse
-from autosecure.core.deps import CurrentUser, DBSession
+from autosecure.core.deps import CurrentUser, DBSession, LicensedUser
 from autosecure.db.accounts import AccountRepo
 from autosecure.services.hypixel import get_player_stats
 
 router = APIRouter(prefix="/accounts", tags=["accounts"])
+
+
+class SecureRequest(BaseModel):
+    secure_type: Literal["otp", "recovery", "bulk", "zyger", "own_email"]
+    email: str | None = None
+    otp: str | None = None
+    recovery_code: str | None = None
+    password: str | None = None
+    secret_key: str | None = None
+    username: str | None = None
+    accounts_text: str | None = None
+    target_emails_text: str | None = None
+    own_email: str | None = None
+    own_password: str | None = None
+
+
+class SecureResultResponse(BaseModel):
+    success: bool
+    method: str
+    account_data: dict = {}
+    error: str = ""
+    results: list[dict] | None = None
+
+
+@router.post("/secure", response_model=SecureResultResponse)
+async def secure_account(
+    body: SecureRequest,
+    user_id: LicensedUser,
+    db: DBSession,
+) -> SecureResultResponse:
+    """Secure a Microsoft account using the specified method.
+
+    Requires an active license.
+    """
+    from autosecure.services.securing.otp import otp_secure
+    from autosecure.services.securing.recovery import recovery_secure
+    from autosecure.services.securing.bulk import bulk_secure
+    from autosecure.services.securing.zyger import zyger_secure
+    from autosecure.services.securing.own import own_secure
+
+    secure_type = body.secure_type
+
+    if secure_type == "otp":
+        if not body.email or not body.otp:
+            raise HTTPException(status_code=422, detail="email and otp are required for OTP securing")
+        result = await otp_secure(
+            email=body.email,
+            otp=body.otp,
+            username=body.username,
+            user_id=user_id,
+            db=db,
+        )
+        return SecureResultResponse(
+            success=result.success,
+            method=result.method,
+            account_data=result.account_data,
+            error=result.error,
+        )
+
+    if secure_type == "recovery":
+        if not body.email or not body.recovery_code:
+            raise HTTPException(status_code=422, detail="email and recovery_code are required for recovery securing")
+        result = await recovery_secure(
+            email=body.email,
+            recovery_code=body.recovery_code,
+            username=body.username,
+            user_id=user_id,
+            db=db,
+        )
+        return SecureResultResponse(
+            success=result.success,
+            method=result.method,
+            account_data=result.account_data,
+            error=result.error,
+        )
+
+    if secure_type == "zyger":
+        if not body.email or not body.password or not body.secret_key:
+            raise HTTPException(status_code=422, detail="email, password, and secret_key are required for zyger securing")
+        result = await zyger_secure(
+            email=body.email,
+            password=body.password,
+            secret_key=body.secret_key,
+            username=body.username,
+            user_id=user_id,
+            db=db,
+        )
+        return SecureResultResponse(
+            success=result.success,
+            method=result.method,
+            account_data=result.account_data,
+            error=result.error,
+        )
+
+    if secure_type == "own_email":
+        if not body.email or not body.recovery_code:
+            raise HTTPException(status_code=422, detail="email and recovery_code are required for own_email securing")
+        result = await own_secure(
+            email=body.email,
+            recovery_code=body.recovery_code,
+            own_email=body.own_email,
+            own_password=body.own_password,
+            user_id=user_id,
+            db=db,
+        )
+        return SecureResultResponse(
+            success=result.success,
+            method=result.method,
+            account_data=result.account_data,
+            error=result.error,
+        )
+
+    if secure_type == "bulk":
+        if not body.accounts_text:
+            raise HTTPException(status_code=422, detail="accounts_text is required for bulk securing")
+        results = await bulk_secure(
+            accounts_text=body.accounts_text,
+            target_emails_text=body.target_emails_text or "",
+            user_id=user_id,
+            db=db,
+        )
+        return SecureResultResponse(
+            success=True,
+            method="bulk",
+            results=[{
+                "success": r.success,
+                "error": r.error,
+                "account_data": r.account_data,
+            } for r in results],
+        )
+
+    raise HTTPException(status_code=400, detail=f"Unknown secure type: {secure_type}")
 
 
 @router.get("", response_model=AccountListResponse)

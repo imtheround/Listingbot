@@ -2,25 +2,26 @@
 
 from __future__ import annotations
 
-from __future__ import annotations
-
 import datetime
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
 from autosecure.api.models.licenses import (
     LicenseRedeemRequest,
     LicenseResponse,
-    LicenseTransferRequest,
 )
-from autosecure.core.database import get_db
-from autosecure.core.deps import CurrentUser, DBSession
+from autosecure.core.deps import CurrentUser
 from autosecure.core.exceptions import LicenseNotFound
 from autosecure.db.licenses import LicenseRepo
 from autosecure.models.license import License
 
 router = APIRouter(prefix="/licenses", tags=["licenses"])
+
+
+class LicenseTransferBody(BaseModel):
+    license_key: str
+    new_user_id: str
 
 
 @router.post("/redeem", response_model=LicenseResponse)
@@ -80,28 +81,29 @@ async def license_status(
 
 @router.post("/transfer", response_model=LicenseResponse)
 async def transfer_license(
-    body: LicenseTransferRequest,
-    license_key: str = "",
+    body: LicenseTransferBody,
     user_id: CurrentUser = "",
-    db: AsyncSession = Depends(get_db),
 ) -> LicenseResponse:
     """Transfer a license to another user."""
-    repo = LicenseRepo(db)
-    used = await repo.get_by_key(license_key)
-    if used is None:
-        raise LicenseNotFound()
-    if used.user_id != user_id:
-        raise HTTPException(status_code=403, detail="Not your license")
+    from autosecure.core.database import get_session
 
-    updated = await repo.transfer(license_key, body.new_user_id)
-    if updated is None:
-        raise HTTPException(status_code=404, detail="Transfer failed")
+    async with get_session() as db:
+        repo = LicenseRepo(db)
+        used = await repo.get_by_key(body.license_key)
+        if used is None:
+            raise LicenseNotFound()
+        if used.user_id != user_id:
+            raise HTTPException(status_code=403, detail="Not your license")
 
-    now = datetime.datetime.now(datetime.UTC).isoformat()
+        updated = await repo.transfer(body.license_key, body.new_user_id)
+        if updated is None:
+            raise HTTPException(status_code=404, detail="Transfer failed")
 
-    return LicenseResponse(
-        license_key=updated.license,
-        user_id=updated.user_id,
-        expires_at=updated.expiry,
-        is_active=updated.expiry > now,
-    )
+        now = datetime.datetime.now(datetime.UTC).isoformat()
+
+        return LicenseResponse(
+            license_key=updated.license,
+            user_id=updated.user_id,
+            expires_at=updated.expiry,
+            is_active=updated.expiry > now,
+        )

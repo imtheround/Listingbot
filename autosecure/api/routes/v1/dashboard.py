@@ -10,6 +10,7 @@ from sqlalchemy import func, select
 
 from autosecure.core.deps import CurrentUser, DBSession
 from autosecure.models import Account, AutoSecure, License, UsedLicense, User
+from autosecure.models.account import AccountByUser
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
@@ -28,6 +29,64 @@ class DashboardStatsResponse(BaseModel):
     recent_activity: list[dict]
 
 
+class UserStatsResponse(BaseModel):
+    """Scoped stats for the user dashboard overview."""
+
+    my_accounts: int
+    my_bots: int
+    my_active_bots: int
+    has_license: bool
+    license_expiry: str | None = None
+    uptime_seconds: float
+
+
+@router.get("/user-stats", response_model=UserStatsResponse)
+async def user_dashboard_stats(
+    user_id: CurrentUser,
+    db: DBSession,
+) -> UserStatsResponse:
+    """Scoped stats for the current user's dashboard."""
+    from autosecure.core.state import state
+    from autosecure.db.users import UserRepo
+
+    my_accounts = await db.scalar(
+        select(func.count()).select_from(AccountByUser).where(AccountByUser.user_id == user_id)
+    )
+
+    my_bots = await db.scalar(
+        select(func.count()).select_from(AutoSecure).where(AutoSecure.user_id == user_id)
+    )
+
+    my_active_bots = sum(
+        1 for key in state.active_bots if key.startswith(f"{user_id}|")
+    )
+
+    repo = UserRepo(db)
+    has_license = await repo.has_active_license(user_id)
+    license_expiry: str | None = None
+    if has_license:
+        now_iso = datetime.datetime.now(datetime.UTC).isoformat()
+        stmt = (
+            select(UsedLicense)
+            .where(UsedLicense.user_id == user_id, UsedLicense.expiry > now_iso)
+            .order_by(UsedLicense.expiry.desc())
+            .limit(1)
+        )
+        result = await db.execute(stmt)
+        lic = result.scalar_one_or_none()
+        if lic:
+            license_expiry = lic.expiry
+
+    return UserStatsResponse(
+        my_accounts=my_accounts or 0,
+        my_bots=my_bots or 0,
+        my_active_bots=my_active_bots,
+        has_license=has_license,
+        license_expiry=license_expiry,
+        uptime_seconds=state.uptime,
+    )
+
+
 @router.get("/stats", response_model=DashboardStatsResponse)
 async def dashboard_stats(
     user_id: CurrentUser,
@@ -38,26 +97,20 @@ async def dashboard_stats(
     import autosecure.core.redis as _redis
     from autosecure.core.state import state
 
-    # Account count
     accounts_count = await db.scalar(select(func.count()).select_from(Account))
 
-    # Bots count
     bots_count = await db.scalar(select(func.count()).select_from(AutoSecure))
 
-    # Active bots (in-memory state)
     active_bots = len(state.active_bots)
 
-    # Licenses
     total_licenses = await db.scalar(select(func.count()).select_from(License))
     now_iso = datetime.datetime.now(datetime.UTC).isoformat()
     active_licenses = await db.scalar(
         select(func.count()).select_from(UsedLicense).where(UsedLicense.expiry > now_iso)
     )
 
-    # Users count
     users_count = await db.scalar(select(func.count()).select_from(User))
 
-    # Health checks
     health: dict[str, bool] = {}
     try:
         if _db.session_factory is not None:

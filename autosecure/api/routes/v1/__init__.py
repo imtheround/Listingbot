@@ -11,6 +11,7 @@ from autosecure.api.routes.v1.dashboard import router as dashboard_router
 from autosecure.api.routes.v1.emails import router as emails_router
 from autosecure.api.routes.v1.events import router as events_router
 from autosecure.api.routes.v1.health import router as health_router
+from autosecure.api.routes.v1.hypixel import router as hypixel_router
 from autosecure.api.routes.v1.licenses import router as licenses_router
 from autosecure.api.routes.v1.public import router as public_router
 from autosecure.api.routes.v1.users import router as users_router
@@ -29,3 +30,4 @@ router.include_router(admin_router)
 router.include_router(dashboard_router)
 router.include_router(events_router)
 router.include_router(public_router)
+router.include_router(hypixel_router)

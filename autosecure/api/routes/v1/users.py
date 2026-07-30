@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from __future__ import annotations
-
 from fastapi import APIRouter, HTTPException
 from passlib.hash import bcrypt
 from pydantic import BaseModel
@@ -31,11 +29,15 @@ class UserLicensesResponse(BaseModel):
 
 class UserSettingsUpdate(BaseModel):
     showleaderboard: bool | None = None
+    claiming: str | None = None
+    dm_notifications: bool | None = None
 
 
 class UserSettingsResponse(BaseModel):
     user_id: str
     showleaderboard: bool
+    claiming: str
+    dm_notifications: bool
 
 
 class PasswordChangeRequest(BaseModel):
@@ -46,6 +48,49 @@ class PasswordChangeRequest(BaseModel):
 class PasswordChangeResponse(BaseModel):
     success: bool
     message: str
+
+
+@router.put("/me/settings", response_model=UserSettingsResponse)
+async def update_my_settings(
+    body: UserSettingsUpdate,
+    current_user: CurrentUser,
+    db: DBSession,
+) -> UserSettingsResponse:
+    """Update the current user's settings."""
+    repo = UserRepo(db)
+    user = await repo.get(current_user)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    stmt = select(UserSettings).where(UserSettings.user_id == current_user)
+    result = await db.execute(stmt)
+    settings = result.scalar_one_or_none()
+
+    if settings is None:
+        settings = UserSettings(
+            user_id=current_user,
+            showleaderboard=body.showleaderboard if body.showleaderboard is not None else True,
+        )
+        db.add(settings)
+    elif body.showleaderboard is not None:
+        settings.showleaderboard = body.showleaderboard
+
+    if body.claiming is not None:
+        user.claiming = body.claiming
+
+    perms = dict(user.permissions)
+    if body.dm_notifications is not None:
+        perms["dm_notifications"] = body.dm_notifications
+        user.permissions = perms
+
+    await db.flush()
+
+    return UserSettingsResponse(
+        user_id=current_user,
+        showleaderboard=settings.showleaderboard,
+        claiming=user.claiming,
+        dm_notifications=bool(perms.get("dm_notifications", False)),
+    )
 
 
 @router.get("/me", response_model=UserProfileResponse)

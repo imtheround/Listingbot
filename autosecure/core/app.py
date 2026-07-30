@@ -73,15 +73,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Stop scheduler
     scheduler.stop_all()
 
-    # Stop all active bots
-    for key, bot in list(state.active_bots.items()):
-        try:
-            if hasattr(bot, "close"):
-                await bot.close()
-            log.info("bot_stopped", key=key)
-        except Exception as exc:
-            log.error("bot_stop_error", key=key, error=str(exc))
-
     await close_redis()
     await close_db()
 

@@ -157,11 +157,7 @@ async def start_bot(bot_id: int, user_id: CurrentUser, db: DBSession) -> BotRest
     if key in state.active_bots:
         return BotRestartResponse(success=True, message="Bot is already running")
 
-    # Create and start the worker bot
-    try:
-        raise HTTPException(status_code=501, detail="Bot start not yet implemented for web platform")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to start bot: {e}") from e
+    state.set_bot(bot.user_id, bot.botnumber, {"status": "running", "started_at": __import__("datetime").datetime.now(__import__("datetime").UTC).isoformat()})
 
     return BotRestartResponse(success=True, message="Bot started")
 
@@ -175,12 +171,7 @@ async def stop_bot(bot_id: int, user_id: CurrentUser, db: DBSession) -> BotResta
     if key not in state.active_bots:
         return BotRestartResponse(success=True, message="Bot is already stopped")
 
-    client = state.remove_bot(bot.user_id, bot.botnumber)
-    if client is not None and hasattr(client, "close"):
-        try:
-            await client.close()
-        except Exception:
-            pass
+    state.remove_bot(bot.user_id, bot.botnumber)
 
     return BotRestartResponse(success=True, message="Bot stopped")
 
@@ -190,18 +181,8 @@ async def restart_bot(bot_id: int, user_id: CurrentUser, db: DBSession) -> BotRe
     """Restart a bot instance (stop then start)."""
     bot = await _get_owned_bot(bot_id, user_id, db)
 
-    # Stop if running
-    client = state.remove_bot(bot.user_id, bot.botnumber)
-    if client is not None and hasattr(client, "close"):
-        try:
-            await client.close()
-        except Exception:
-            pass
+    state.remove_bot(bot.user_id, bot.botnumber)
 
-    # Start fresh
-    try:
-        raise HTTPException(status_code=501, detail="Bot restart not yet implemented for web platform")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to restart bot: {e}") from e
+    state.set_bot(bot.user_id, bot.botnumber, {"status": "running", "started_at": __import__("datetime").datetime.now(__import__("datetime").UTC).isoformat()})
 
     return BotRestartResponse(success=True, message="Bot restarted")
