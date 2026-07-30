@@ -409,6 +409,87 @@ class SecurityMiddleware(BaseHTTPMiddleware):
 - Admin cannot ban other admins
 - System must always have at least 1 admin (prevents lockout)
 
+### 2.12 Anti-Abuse System
+
+#### 2.12.1 Admin Login Protection
+
+- **5-second cooldown per IP** on failed admin login attempts
+- After 5 failed attempts from same IP within 10 minutes → block IP for 15 minutes
+- Failed login logged with: IP, timestamp, user-agent
+- Successful login resets the cooldown counter for that IP
+- Applied to: `POST /auth/login` (legacy), `GET /auth/google/callback` (first-time OAuth)
+- Implementation: Redis key `auth:cooldown:{ip}` with TTL
+
+#### 2.12.2 Rate Limiting (Global)
+
+- **100 requests per 60 seconds** per IP on all authenticated endpoints
+- **30 requests per 60 seconds** per IP on unauthenticated endpoints (health, public status)
+- Redis-backed sliding window: `ratelimit:{ip}:{window}`
+- Returns `429 Too Many Requests` with `Retry-After` header
+
+#### 2.12.3 DDoS Protection
+
+- Connection rate limit: max 10 new connections/second per IP
+- Request body size limit: 1MB max
+- Slow client timeout: 30 seconds to send full request
+- Implementation: FastAPI middleware checking `Content-Length` and connection count
+
+#### 2.12.4 Request Spam Prevention
+
+- Duplicate request detection: same method + path + body within 2 seconds → reject
+- Implementation: Redis key `spam:{ip}:{method}:{body_hash}` with 2s TTL
+- Applied to: POST/PUT/DELETE endpoints only (GET is idempotent)
+
+#### 2.12.5 Brute Force Protection
+
+- **Login attempts:** 5 per 10 minutes per IP → block 15 minutes
+- **License redeem:** 3 per 10 minutes per user → block 30 minutes
+- **Invoice creation:** 5 per hour per user → block 1 hour
+- All tracked in Redis with sliding windows
+
+#### 2.12.6 Fake Purchase Protection
+
+- Invoice creation requires valid hCaptcha token
+- Invoice status polling rate limit: 10 per minute per user
+- IPN callback: verify HMAC-SHA512 signature from NOWPayments
+- Duplicate invoice detection: same order_id → reject
+- Amount validation: verify paid amount matches expected price (±5% tolerance for crypto)
+
+#### 2.12.7 Bot Detection
+
+- Known bot User-Agents blocked: `bot`, `crawler`, `spider`, `scrapy`, `curl`, `wget`, `python-requests`, `httpclient`, `go-http-client`
+- Missing or suspicious User-Agent → flag as suspicious
+- Implementation: check in SecurityMiddleware on every request
+
+#### 2.12.8 hCaptcha on Sensitive Endpoints
+
+- `POST /auth/login` (legacy email+password) — requires hCaptcha
+- `GET /auth/google` (OAuth initiation) — optional hCaptcha (prevents redirect spam)
+- `POST /api/v1/billing/create-invoice` — requires hCaptcha
+- `POST /licenses/redeem` — requires hCaptcha
+- hCaptcha token verified server-side before processing request
+- Frontend: `<HCaptcha>` component on login page, purchase page, redeem page
+
+#### 2.12.9 Geo Anomaly Detection
+
+- Track countries per user: `user:{id}:countries` (Redis set)
+- Login from new country → require hCaptcha on next login
+- Login from 3+ countries in 24 hours → flag as suspicious
+- Implementation: store country from IP geolocation (MaxMind GeoLite2 or similar)
+
+#### 2.12.10 Session Hijacking Detection
+
+- Track IPs per user session: `user:{id}:ips` (Redis sorted set with timestamps)
+- Same JWT used from 2+ different IPs within 5 minutes → revoke all tokens for user
+- Log as suspicious event: `session_hijacking_suspected`
+
+#### 2.12.11 Suspicious Event Logging
+
+- All detections logged to Redis list: `security:suspicious_log`
+- Each event: `{event_type, ip, user_agent, user_id, details, timestamp}`
+- Last 1000 events kept in memory, queryable via admin API
+- Admin can view and manually unblock IPs
+
 ---
 
 ## 3. Authentication System (Google OAuth)
@@ -1163,19 +1244,29 @@ export function middleware(request: NextRequest) {
 2. `/auth/google/callback` page — handle redirect, store tokens
 3. User dropdown with avatar and name
 
-### Sprint C: Suspicious Behavior Detection (Priority: Critical)
+### Sprint C: Anti-Abuse System (Priority: Critical)
 
 **Backend:**
-1. Create `autosecure/core/security.py` — `SuspiciousBehaviorDetector` with all detection rules
-2. Create `SecurityMiddleware` — runs on every request
-3. Detection rules: rate limit, login burst, bot user-agent, geo anomaly, session hijacking
-4. Redis-backed blocking: `security:blocked:{ip}` with TTL
-5. Suspicious event logging: `security:suspicious_log` (Redis list)
-6. Create admin API: `GET /api/v1/admin/security/suspicious`, `POST /api/v1/admin/security/unblock/{ip}`
-7. Admin security dashboard page
+1. Create `autosecure/core/security.py` — `SuspiciousBehaviorDetector` with all detection rules (already exists from Sprint A)
+2. Create `SecurityMiddleware` — runs on every request, applies all protections below
+3. **Admin login protection:** 5-second cooldown per IP on failed login attempts; 5 failures in 10 min → block 15 min
+4. **Global rate limiting:** 100 req/60s (authenticated), 30 req/60s (unauthenticated) — Redis sliding window
+5. **DDoS protection:** max 10 new connections/s per IP, 1MB body limit, 30s slow client timeout
+6. **Request spam prevention:** same method+path+body within 2s → reject (POST/PUT/DELETE only)
+7. **Brute force protection:** 5 logins/10min per IP, 3 license redeems/10min per user, 5 invoices/hour per user
+8. **Fake purchase protection:** hCaptcha on invoice creation, HMAC-SHA512 on IPN callback, amount validation (±5%)
+9. **Bot detection:** block known bot User-Agents on all requests
+10. **hCaptcha on sensitive endpoints:** login, OAuth initiation, invoice creation, license redeem
+11. **Geo anomaly:** track countries per user, new country → require hCaptcha, 3+ countries/24h → flag
+12. **Session hijacking:** same JWT from 2+ IPs in 5 min → revoke all tokens
+13. **Suspicious event logging:** all detections logged to Redis `security:suspicious_log`
+14. Create admin API: `GET /api/v1/admin/security/suspicious`, `POST /api/v1/admin/security/unblock/{ip}`, `GET /api/v1/admin/security/blocked`
+15. Create `autosecure/services/hcaptcha.py` — hCaptcha verification (already exists from Sprint A)
 
 **Frontend:**
-- Admin security page: blocked IPs, suspicious events, unblock button
+1. Admin security page: blocked IPs, suspicious events, unblock button
+2. hCaptcha component on login page (already exists from Sprint A)
+3. hCaptcha component on purchase page (Sprint D)
 
 ### Sprint D: Payment System (Priority: High)
 
