@@ -12,6 +12,11 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
+  // Port 3001: redirect / -> /login (admin dashboard entry)
+  if (host.includes(":3001") && pathname === "/") {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
   if (pathname.startsWith("/auth") || pathname.startsWith("/api") || pathname.startsWith("/_next")) {
     return NextResponse.next();
   }
@@ -23,7 +28,10 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get("auth_token")?.value;
 
   if (pathname === "/login" || pathname === "/register") {
-    if (token) return NextResponse.redirect(new URL("/dashboard", request.url));
+    if (token) {
+      if (host.includes(":3001")) return NextResponse.redirect(new URL("/admin", request.url));
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
     return NextResponse.next();
   }
 
