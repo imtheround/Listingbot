@@ -19,7 +19,7 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get("auth_token")?.value;
 
   if (pathname === "/login") {
-    if (token) return NextResponse.redirect(new URL("/", request.url));
+    if (token) return NextResponse.redirect(new URL("/admin", request.url));
     return NextResponse.next();
   }
 

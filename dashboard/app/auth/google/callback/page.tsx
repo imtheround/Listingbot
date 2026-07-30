@@ -16,7 +16,7 @@ function CallbackHandler() {
       localStorage.setItem("access_token", accessToken);
       document.cookie = `auth_token=${accessToken}; path=/; max-age=86400; SameSite=Lax`;
       localStorage.setItem("refresh_token", refreshToken);
-      router.push("/");
+      router.push("/admin");
     } else {
       router.push("/login");
     }

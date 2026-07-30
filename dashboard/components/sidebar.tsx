@@ -5,14 +5,14 @@ import { cn } from "@/lib/utils";
 import { LayoutDashboard, Users, Bot, Key, Mail, Settings, ShieldCheck, LogOut, ScrollText, Webhook } from "lucide-react";
 
 const nav = [
-  { href: "/", label: "Overview", icon: LayoutDashboard },
-  { href: "/accounts", label: "Accounts", icon: Users },
-  { href: "/bots", label: "Bots", icon: Bot },
-  { href: "/licenses", label: "Licenses", icon: Key },
-  { href: "/emails", label: "Emails", icon: Mail },
-  { href: "/logs", label: "Logs", icon: ScrollText },
-  { href: "/webhooks", label: "Webhooks", icon: Webhook },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/admin", label: "Overview", icon: LayoutDashboard },
+  { href: "/admin/accounts", label: "Accounts", icon: Users },
+  { href: "/admin/bots", label: "Bots", icon: Bot },
+  { href: "/admin/licenses", label: "Licenses", icon: Key },
+  { href: "/admin/emails", label: "Emails", icon: Mail },
+  { href: "/admin/logs", label: "Logs", icon: ScrollText },
+  { href: "/admin/webhooks", label: "Webhooks", icon: Webhook },
+  { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
 export function Sidebar() {
