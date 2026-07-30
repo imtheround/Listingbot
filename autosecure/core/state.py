@@ -17,7 +17,6 @@ class AppState:
         self._quarantine_map: dict[str, Any] = {}
         self._email_watchers: dict[str, Any] = {}
         self._initialization_status: dict[str, Any] = {}
-        self._main_bot_client: Any = None
 
     @property
     def uptime(self) -> float:
@@ -43,16 +42,6 @@ class AppState:
     def initialization_status(self) -> dict[str, Any]:
         """Bot initialization status."""
         return self._initialization_status
-
-    @property
-    def main_bot_client(self) -> Any:
-        """The main Discord bot client."""
-        return self._main_bot_client
-
-    @main_bot_client.setter
-    def main_bot_client(self, client: Any) -> None:
-        """Set the main Discord bot client."""
-        self._main_bot_client = client
 
     def is_owner(self, user_id: str) -> bool:
         """Check if a user ID is in the owners list."""

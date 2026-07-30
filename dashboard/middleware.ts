@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const publicPaths = ["/", "/login", "/pricing", "/faq", "/tos", "/privacy", "/status"];
+const publicPaths = ["/", "/pricing", "/faq", "/tos", "/privacy", "/status"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -18,11 +18,13 @@ export function middleware(request: NextRequest) {
 
   const token = request.cookies.get("auth_token")?.value;
 
+  // Login page: redirect to /admin if already logged in
   if (pathname === "/login") {
     if (token) return NextResponse.redirect(new URL("/admin", request.url));
     return NextResponse.next();
   }
 
+  // Protected routes: redirect to /login if no token
   if (!token) {
     return NextResponse.redirect(new URL("/login", request.url));
   }

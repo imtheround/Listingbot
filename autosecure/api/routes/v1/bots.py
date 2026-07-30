@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
-
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -161,16 +159,7 @@ async def start_bot(bot_id: int, user_id: CurrentUser, db: DBSession) -> BotRest
 
     # Create and start the worker bot
     try:
-        from autosecure.bot.worker.client import create_worker_bot
-
-        client = create_worker_bot(
-            token=bot.token,
-            user_id=bot.user_id,
-            botnumber=bot.botnumber,
-        )
-
-        # Start the bot in a background task
-        asyncio.create_task(client.start(bot.token))
+        raise HTTPException(status_code=501, detail="Bot start not yet implemented for web platform")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to start bot: {e}") from e
 
@@ -211,14 +200,7 @@ async def restart_bot(bot_id: int, user_id: CurrentUser, db: DBSession) -> BotRe
 
     # Start fresh
     try:
-        from autosecure.bot.worker.client import create_worker_bot
-
-        new_client = create_worker_bot(
-            token=bot.token,
-            user_id=bot.user_id,
-            botnumber=bot.botnumber,
-        )
-        asyncio.create_task(new_client.start(bot.token))
+        raise HTTPException(status_code=501, detail="Bot restart not yet implemented for web platform")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to restart bot: {e}") from e
 

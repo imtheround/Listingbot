@@ -72,11 +72,11 @@ export default function OverviewPage() {
             <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
-            <Link href="/accounts"><Button variant="outline" size="sm">View Accounts</Button></Link>
-            <Link href="/bots"><Button variant="outline" size="sm">Manage Bots</Button></Link>
-            <Link href="/licenses"><Button variant="outline" size="sm">Licenses</Button></Link>
-            <Link href="/emails"><Button variant="outline" size="sm">Emails</Button></Link>
-            <Link href="/settings"><Button variant="outline" size="sm">Settings</Button></Link>
+            <Link href="/admin/accounts"><Button variant="outline" size="sm">View Accounts</Button></Link>
+            <Link href="/admin/bots"><Button variant="outline" size="sm">Manage Bots</Button></Link>
+            <Link href="/admin/licenses"><Button variant="outline" size="sm">Licenses</Button></Link>
+            <Link href="/admin/emails"><Button variant="outline" size="sm">Emails</Button></Link>
+            <Link href="/admin/settings"><Button variant="outline" size="sm">Settings</Button></Link>
           </CardContent>
         </Card>
       </div>

@@ -35,21 +35,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # Start background task scheduler
     from autosecure.tasks.autoclean import clean_temp_files
-    from autosecure.tasks.leaderboard_update import update_leaderboard
-    from autosecure.tasks.license_check import check_licenses
-    from autosecure.tasks.notification_poll import poll_notifications
     from autosecure.tasks.quarantine_check import check_expired_quarantines, check_quarantine_status
-    from autosecure.tasks.role_sync import sync_roles
     from autosecure.tasks.scheduler import TaskScheduler
 
     scheduler = TaskScheduler()
     state.scheduler = scheduler  # type: ignore[attr-defined]
 
     # Config intervals are in milliseconds — convert to seconds
-    scheduler.add_task("license_check", check_licenses, settings.tasks.license_check / 1000)
-    scheduler.add_task(
-        "leaderboard_update", update_leaderboard, settings.tasks.leaderboard_update / 1000
-    )
     scheduler.add_task(
         "quarantine_check", check_quarantine_status, settings.tasks.quarantine_check / 1000
     )
@@ -58,10 +50,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         check_expired_quarantines,
         settings.tasks.quarantine_expiry / 1000,
     )
-    scheduler.add_task(
-        "notification_poll", poll_notifications, settings.tasks.notification_poll / 1000
-    )
-    scheduler.add_task("role_sync", sync_roles, settings.tasks.role_sync / 1000)
     scheduler.add_task("autoclean", clean_temp_files, settings.tasks.autoclean / 1000)
 
     scheduler.start_all()

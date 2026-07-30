@@ -22,22 +22,6 @@ def _load_yaml_config() -> dict[str, Any]:
     return {}
 
 
-class DiscordConfig(BaseSettings):
-    tokens: list[str] = [""]
-    guild_id: str = ""
-    owner_role: str = ""
-    member_role: str = ""
-    role_id: str = ""
-    welcome_channel: str = ""
-    leaderboard_channel: str = ""
-    log_channel: str = ""
-    notifier_channel: str = ""
-    transcript_channel: str = ""
-    ticket_category: str = ""
-    notifier_webhook: str = ""
-    webhook_url: str = ""
-
-
 class LicenseConfig(BaseSettings):
     trial_duration: str = "8h"
     jwt_secret: str = ""
@@ -135,13 +119,9 @@ class HTTPConfig(BaseSettings):
 
 
 class TaskConfig(BaseSettings):
-    license_check: int = 10000
     invoice_check: int = 60000
-    leaderboard_update: int = 300000
     quarantine_check: int = 60000
     quarantine_expiry: int = 86400000
-    notification_poll: int = 30000
-    role_sync: int = 1800000
     autoclean: int = 3600000
 
 
@@ -171,7 +151,6 @@ class LoggingConfig(BaseSettings):
 class Settings(BaseSettings):
     """Root application settings."""
 
-    discord: DiscordConfig = Field(default_factory=DiscordConfig)
     owners: list[str] = []
     domains: list[str] = ["autosecure.me"]
     domain: str = "autosecure.me"

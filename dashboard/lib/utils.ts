@@ -15,8 +15,3 @@ export function formatDate(date: string | Date | number): string {
     minute: "2-digit",
   }).format(d);
 }
-
-export function absoluteUrl(path: string): string {
-  const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-  return `${base}${path}`;
-}

@@ -18,23 +18,6 @@ oauth:
   google_userinfo_url: "https://www.googleapis.com/oauth2/v3/userinfo"
   state_expiry_seconds: 600
 
-# Discord Bot Configuration
-discord:
-  tokens:
-    - ""                    # Controller bot token
-  guild_id: ""
-  owner_role: ""
-  member_role: ""
-  role_id: ""
-  welcome_channel: ""
-  leaderboard_channel: ""
-  log_channel: ""
-  notifier_channel: ""
-  transcript_channel: ""
-  ticket_category: ""
-  notifier_webhook: ""
-  webhook_url: ""
-
 # Owner Discord IDs
 owners:
   - ""
@@ -112,13 +95,9 @@ http:
 
 # Task Intervals (milliseconds)
 tasks:
-  license_check: 10000       # 10s
   invoice_check: 60000       # 60s
-  leaderboard_update: 300000 # 5min
   quarantine_check: 60000    # 60s
   quarantine_expiry: 86400000 # 24h
-  notification_poll: 30000   # 30min
-  role_sync: 1800000         # 30min
   autoclean: 3600000         # 1h
 
 # Email Configuration
