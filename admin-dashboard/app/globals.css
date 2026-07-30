@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 0 0% 4%;
+  --foreground: 0 0% 93%;
+  --card: 0 0% 7%;
+  --card-foreground: 0 0% 93%;
+  --popover: 0 0% 7%;
+  --popover-foreground: 0 0% 93%;
+  --primary: 210 100% 50%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 12%;
+  --secondary-foreground: 0 0% 93%;
+  --muted: 0 0% 12%;
+  --muted-foreground: 0 0% 50%;
+  --accent: 0 0% 12%;
+  --accent-foreground: 0 0% 93%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 14%;
+  --input: 0 0% 14%;
+  --ring: 210 100% 50%;
+  --radius: 0.5rem;
+}
+
+* { border-color: hsl(var(--border)); }
+body { background: hsl(var(--background)); color: hsl(var(--foreground)); }
+
+@layer base {
+  input, textarea, select { background: hsl(var(--input)); color: hsl(var(--foreground)); font-size: 0.875rem; }
+  input { height: 2.5rem; padding: 0 0.75rem; border-radius: var(--radius); }
+  input:focus { outline: 2px solid hsl(var(--ring)); outline-offset: -1px; }
+}
