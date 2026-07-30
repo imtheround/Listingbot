@@ -11,7 +11,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <Sidebar />
       <main className="flex-1 pl-56">
         <div className="h-12 border-b border-border bg-card flex items-center px-6">
-          <span className="text-xs text-muted-foreground font-mono">autosecure.api</span>
+          <span className="text-xs text-muted-foreground font-mono">autosecure / admin-panel</span>
+          <span className="ml-auto text-[10px] font-medium text-primary border border-primary/30 rounded px-1.5 py-0.5">RESTRICTED</span>
         </div>
         <div className="p-6">{children}</div>
       </main>

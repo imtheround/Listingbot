@@ -6,18 +6,42 @@ import asyncio
 import json
 import time
 
-from fastapi import APIRouter
+import jwt
+from fastapi import APIRouter, Query
 from fastapi.responses import StreamingResponse
 
-from autosecure.core.deps import CurrentUser
+from autosecure.core.config import settings
 from autosecure.core.redis import get_redis
 
 router = APIRouter(tags=["events"])
 
 
 @router.get("/events")
-async def event_stream(user_id: CurrentUser) -> StreamingResponse:
-    """Stream real-time events via SSE. Events are published to Redis 'events' channel."""
+async def event_stream(token: str = Query(default="")) -> StreamingResponse:
+    """Stream real-time events via SSE. Events are published to Redis 'events' channel.
+
+    Token is passed as query param because EventSource cannot set custom headers.
+    """
+    if not token:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=401, detail="Missing token")
+
+    try:
+        payload = jwt.decode(
+            token,
+            settings.security.jwt_secret,
+            algorithms=[settings.security.jwt_algorithm],
+        )
+        user_id = payload.get("user_id")
+        if not user_id:
+            from fastapi import HTTPException
+
+            raise HTTPException(status_code=401, detail="Invalid token")
+    except jwt.PyJWTError:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=401, detail="Invalid token")
 
     async def generate():
         r = get_redis()

@@ -26,6 +26,7 @@ export function Sidebar() {
           <ShieldCheck className="h-4 w-4 text-white" />
         </div>
         <span className="text-sm font-semibold tracking-tight">AutoSecure</span>
+        <span className="ml-auto text-[10px] font-medium text-primary border border-primary/30 rounded px-1.5 py-0.5">ADMIN</span>
       </div>
       <nav className="flex-1 p-3 space-y-0.5">
         {nav.map((item) => {
@@ -45,10 +46,13 @@ export function Sidebar() {
         })}
       </nav>
       <div className="border-t border-border p-3 space-y-2">
+        <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+          <span>Admin Panel</span>
+          <span>v1.0.0</span>
+        </div>
         <button onClick={logout} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors w-full">
           <LogOut className="h-3 w-3" /> Sign Out
         </button>
-        <p className="text-xs text-muted-foreground">v1.0.0</p>
       </div>
     </aside>
   );
