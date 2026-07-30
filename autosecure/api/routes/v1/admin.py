@@ -227,7 +227,7 @@ async def list_audit_logs(
             AuditLogResponse(
                 id=log.id,
                 timestamp=log.timestamp.isoformat() if log.timestamp else "",
-                actor_id=log.actor_id,
+                 actor_id=log.actor_id,
                 action=log.action,
                 target_type=log.target_type,
                 target_id=log.target_id,
@@ -240,4 +240,96 @@ async def list_audit_logs(
         total=total,
         page=page,
         pages=max(1, -(-total // per_page)),
+    )
+
+
+# ── Security Endpoints ────────────────────────────────────────────────
+
+
+class BlockedIPResponse(BaseModel):
+    ip: str
+    blocked_until: float
+    remaining_seconds: int
+
+
+class BlockedIPListResponse(BaseModel):
+    blocked_ips: list[BlockedIPResponse]
+    total: int
+
+
+class SuspiciousEventResponse(BaseModel):
+    event_type: str
+    ip: str
+    user_agent: str
+    user_id: str | None
+    details: dict
+    timestamp: float
+
+
+class SuspiciousEventListResponse(BaseModel):
+    events: list[SuspiciousEventResponse]
+    total: int
+
+
+class UnblockRequest(BaseModel):
+    ip: str
+
+
+@router.get("/security/blocked", response_model=BlockedIPListResponse)
+async def list_blocked_ips(
+    owner: OwnerUser,
+) -> BlockedIPListResponse:
+    """List all currently blocked IPs (owner only)."""
+    from autosecure.core.security_middleware import anti_abuse
+
+    blocked = anti_abuse.get_blocked_ips()
+    return BlockedIPListResponse(
+        blocked_ips=[
+            BlockedIPResponse(
+                ip=b["ip"],
+                blocked_until=b["blocked_until"],
+                remaining_seconds=b["remaining_seconds"],
+            )
+            for b in blocked
+        ],
+        total=len(blocked),
+    )
+
+
+@router.post("/security/unblock")
+async def unblock_ip(
+    body: UnblockRequest,
+    owner: OwnerUser,
+) -> dict[str, str]:
+    """Manually unblock an IP address (owner only)."""
+    from autosecure.core.security_middleware import anti_abuse
+
+    success = anti_abuse.unblock_ip(body.ip)
+    if not success:
+        raise HTTPException(status_code=404, detail="IP not found in block list")
+    return {"success": True, "message": f"IP {body.ip} unblocked"}
+
+
+@router.get("/security/suspicious", response_model=SuspiciousEventListResponse)
+async def list_suspicious_events(
+    owner: OwnerUser,
+    limit: int = Query(50, ge=1, le=200),
+) -> SuspiciousEventListResponse:
+    """List recent suspicious events (owner only)."""
+    from autosecure.core.security_middleware import anti_abuse
+
+    events = anti_abuse.get_events(limit=limit)
+    return SuspiciousEventListResponse(
+        events=[
+            SuspiciousEventResponse(
+                event_type=e["event_type"],
+                ip=e["ip"],
+                user_agent=e["user_agent"],
+                user_id=e["user_id"],
+                details=e["details"],
+                timestamp=e["timestamp"],
+            )
+            for e in events
+        ],
+        total=len(events),
     )

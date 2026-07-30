@@ -72,8 +72,16 @@ def _issue_tokens(user_id: str) -> dict:
 
 
 @router.get("/google")
-async def google_login():
-    """Redirect to Google OAuth consent screen."""
+async def google_login(captcha: str = Query(default="")):
+    """Redirect to Google OAuth consent screen. Requires hCaptcha."""
+    # Verify hCaptcha
+    if settings.hcaptcha.enabled:
+        from autosecure.services.hcaptcha import verify_hcaptcha
+
+        result = await verify_hcaptcha(captcha)
+        if not result.get("success"):
+            raise HTTPException(status_code=400, detail="Captcha verification failed")
+
     state = secrets.token_urlsafe(32)
     r = get_redis()
     await r.set(f"oauth_state:{state}", "1", ex=settings.oauth.state_expiry_seconds)

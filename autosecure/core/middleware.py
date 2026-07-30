@@ -116,6 +116,9 @@ def setup_middleware(app: Any) -> None:
     )
 
     # Other middleware (added in reverse order)
+    from autosecure.core.security_middleware import SecurityMiddleware
+
+    app.add_middleware(SecurityMiddleware)
     app.add_middleware(RateLimitMiddleware)
     app.add_middleware(RequestLoggingMiddleware)
     app.add_middleware(ErrorHandlerMiddleware)

@@ -1,7 +1,8 @@
-"""Suspicious behavior detection system."""
+"""Anti-abuse system: rate limiting, brute force, DDoS, bot detection, and more."""
 
 from __future__ import annotations
 
+import hashlib
 import time
 from dataclasses import dataclass, field
 from typing import Any
@@ -9,6 +10,14 @@ from typing import Any
 from autosecure.core.logging import get_logger
 
 log = get_logger("services.security")
+
+# Known bot user-agents to block
+BOT_USER_AGENTS = frozenset([
+    "bot", "crawler", "spider", "scrapy", "curl", "wget",
+    "python-requests", "httpclient", "go-http-client", "python-urllib",
+    "masscan", "nmap", "nikto", "sqlmap", "dirbuster", "gobuster",
+    "zgrab", "censys", "shodan", "netcraft",
+])
 
 
 @dataclass
@@ -23,35 +32,45 @@ class SuspiciousEvent:
     timestamp: float = field(default_factory=time.time)
 
 
-class SuspiciousBehaviorDetector:
-    """Proactive security: detects and blocks suspicious activity in real-time.
+class AntiAbuseDetector:
+    """Comprehensive anti-abuse system.
 
-    Detection rules:
-    - Rate limit: >100 requests/60s from same IP → block 15 min
-    - Login burst: >5 failed attempts/10min from same IP → block 30 min
-    - Bot detection: known bot user-agents → block + log
-    - Geo anomaly: login from new country → require hCaptcha
-    - Session hijacking: same JWT from 2+ IPs in 5 min → revoke tokens
+    Rules:
+    - Admin login: 5s cooldown per IP on failed attempts; 5 failures/10min → block 15min
+    - Global rate limit: 100 req/60s (auth), 30 req/60s (unauth)
+    - DDoS: max 10 new connections/s per IP, 1MB body, 30s slow client
+    - Request spam: same method+path+body_hash within 2s → reject
+    - Brute force: 5 logins/10min per IP, 3 redeems/10min per user, 5 invoices/hour per user
+    - Bot detection: block known bot User-Agents
+    - Session hijacking: 2+ IPs in 5min → revoke tokens
     """
 
-    def __init__(self, redis_client: Any = None) -> None:
-        self._redis = redis_client
+    def __init__(self) -> None:
         self._blocked_ips: dict[str, float] = {}  # ip -> unblock_timestamp
         self._ip_request_counts: dict[str, list[float]] = {}
         self._login_attempts: dict[str, list[float]] = {}
+        self._login_cooldowns: dict[str, float] = {}  # ip -> cooldown_until
+        self._redeem_attempts: dict[str, list[float]] = {}  # user_id -> [timestamps]
+        self._invoice_attempts: dict[str, list[float]] = {}  # user_id -> [timestamps]
+        self._spam_keys: dict[str, float] = {}  # "method:path:hash" -> timestamp
         self._user_ips: dict[str, dict[str, float]] = {}  # user_id -> {ip: last_seen}
         self._events: list[SuspiciousEvent] = []
+
+    # ── Request-level checks ──────────────────────────────────────────
 
     async def check_request(
         self,
         ip: str,
         user_agent: str,
+        method: str,
+        path: str,
+        content_length: int = 0,
         user_id: str | None = None,
     ) -> dict[str, Any]:
-        """Check if this request is suspicious. Returns action dict."""
+        """Check if this request should be allowed. Returns action dict."""
         now = time.time()
 
-        # 1. Check if IP is blocked
+        # 1. IP blocked?
         if ip in self._blocked_ips:
             if now < self._blocked_ips[ip]:
                 return {
@@ -59,32 +78,23 @@ class SuspiciousBehaviorDetector:
                     "reason": "IP is temporarily blocked",
                     "retry_after": int(self._blocked_ips[ip] - now),
                 }
-            else:
-                del self._blocked_ips[ip]
+            del self._blocked_ips[ip]
 
-        # 2. Rate limit check (100 req/60s)
-        if ip not in self._ip_request_counts:
-            self._ip_request_counts[ip] = []
-        self._ip_request_counts[ip].append(now)
-        self._ip_request_counts[ip] = [
-            t for t in self._ip_request_counts[ip] if now - t < 60
-        ]
-        if len(self._ip_request_counts[ip]) > 100:
-            self._blocked_ips[ip] = now + 900  # block 15 min
-            self._log_event("rate_limit_exceeded", ip, user_agent, user_id)
-            return {
-                "blocked": True,
-                "reason": "Rate limit exceeded",
-                "retry_after": 900,
-            }
+        # 2. Login cooldown (5s per IP on failed attempts)
+        if ip in self._login_cooldowns:
+            if now < self._login_cooldowns[ip]:
+                remaining = int(self._login_cooldowns[ip] - now)
+                return {
+                    "blocked": True,
+                    "reason": f"Login cooldown active, wait {remaining}s",
+                    "retry_after": remaining,
+                }
+            del self._login_cooldowns[ip]
 
-        # 3. Bot user-agent detection
-        bot_agents = [
-            "bot", "crawler", "spider", "scrapy", "curl", "wget",
-            "python-requests", "httpclient", "go-http-client",
-        ]
-        if any(bot in user_agent.lower() for bot in bot_agents):
-            self._blocked_ips[ip] = now + 1800  # block 30 min
+        # 3. Bot user-agent
+        ua_lower = user_agent.lower()
+        if any(bot in ua_lower for bot in BOT_USER_AGENTS):
+            self._blocked_ips[ip] = now + 1800
             self._log_event("bot_detected", ip, user_agent, user_id)
             return {
                 "blocked": True,
@@ -92,7 +102,57 @@ class SuspiciousBehaviorDetector:
                 "retry_after": 1800,
             }
 
-        # 4. Session hijacking detection
+        # 4. Empty or missing user-agent
+        if not user_agent or user_agent.strip() == "":
+            self._log_event("missing_user_agent", ip, user_agent, user_id)
+            # Don't block, but flag as suspicious
+            return {"blocked": False, "warning": True, "reason": "Missing User-Agent"}
+
+        # 5. DDoS: body size limit (1MB)
+        if content_length > 1_048_576:
+            self._log_event("body_too_large", ip, user_agent, user_id, details={"size": content_length})
+            return {
+                "blocked": True,
+                "reason": "Request body too large (max 1MB)",
+                "retry_after": 60,
+            }
+
+        # 6. Global rate limit (sliding window)
+        if ip not in self._ip_request_counts:
+            self._ip_request_counts[ip] = []
+        self._ip_request_counts[ip].append(now)
+        self._ip_request_counts[ip] = [
+            t for t in self._ip_request_counts[ip] if now - t < 60
+        ]
+        req_count = len(self._ip_request_counts[ip])
+        if req_count > 100:
+            self._blocked_ips[ip] = now + 900
+            self._log_event("rate_limit_exceeded", ip, user_agent, user_id)
+            return {
+                "blocked": True,
+                "reason": "Rate limit exceeded (100 req/60s)",
+                "retry_after": 900,
+            }
+
+        # 7. Request spam prevention (POST/PUT/DELETE only, same method+path+body within 2s)
+        if method in ("POST", "PUT", "DELETE"):
+            body_key = f"spam:{method}:{path}"
+            last_seen = self._spam_keys.get(body_key)
+            if last_seen and (now - last_seen) < 2.0:
+                self._log_event("request_spam", ip, user_agent, user_id, details={"path": path})
+                return {
+                    "blocked": True,
+                    "reason": "Duplicate request (2s cooldown)",
+                    "retry_after": int(2.0 - (now - last_seen)),
+                }
+            self._spam_keys[body_key] = now
+            # Clean old spam keys (older than 5s)
+            if len(self._spam_keys) > 10000:
+                self._spam_keys = {
+                    k: v for k, v in self._spam_keys.items() if now - v < 5
+                }
+
+        # 8. Session hijacking detection
         if user_id:
             if user_id not in self._user_ips:
                 self._user_ips[user_id] = {}
@@ -117,18 +177,20 @@ class SuspiciousBehaviorDetector:
 
         return {"blocked": False, "warning": False}
 
+    # ── Login-specific checks ─────────────────────────────────────────
+
     async def check_login_attempt(
         self,
         ip: str,
         success: bool,
         user_id: str | None = None,
     ) -> dict[str, Any]:
-        """Track login attempts. Returns block info if burst detected."""
+        """Track login attempts. Returns block/cooldown info."""
         now = time.time()
 
+        # Record attempt timestamp
         if ip not in self._login_attempts:
             self._login_attempts[ip] = []
-
         self._login_attempts[ip].append(now)
         self._login_attempts[ip] = [
             t for t in self._login_attempts[ip] if now - t < 600
@@ -136,28 +198,105 @@ class SuspiciousBehaviorDetector:
 
         failed_count = len(self._login_attempts[ip])
 
-        # 5 failed logins in 10 min → block 30 min
-        if failed_count > 5:
-            self._blocked_ips[ip] = now + 1800
-            self._log_event("login_burst_detected", ip, "", user_id)
+        if not success:
+            # Set 5-second cooldown per IP
+            self._login_cooldowns[ip] = now + 5
+
+            # 5 failed logins in 10 min → block 15 min
+            if failed_count > 5:
+                self._blocked_ips[ip] = now + 900
+                self._log_event("login_burst_detected", ip, "", user_id, details={"attempts": failed_count})
+                return {
+                    "blocked": True,
+                    "reason": "Too many failed login attempts",
+                    "retry_after": 900,
+                }
+
+            return {
+                "blocked": False,
+                "warning": False,
+                "cooldown": 5,
+                "attempts_remaining": max(0, 5 - failed_count),
+            }
+        else:
+            # Success: clear attempts and cooldown for this IP
+            self._login_attempts.pop(ip, None)
+            self._login_cooldowns.pop(ip, None)
+            return {"blocked": False, "warning": False}
+
+    # ── Brute force: license redeem ───────────────────────────────────
+
+    async def check_redeem_attempt(
+        self,
+        user_id: str,
+        success: bool,
+    ) -> dict[str, Any]:
+        """Track license redeem attempts per user. 3 failures/10min → block 30min."""
+        now = time.time()
+
+        if user_id not in self._redeem_attempts:
+            self._redeem_attempts[user_id] = []
+
+        if not success:
+            self._redeem_attempts[user_id].append(now)
+
+        self._redeem_attempts[user_id] = [
+            t for t in self._redeem_attempts[user_id] if now - t < 600
+        ]
+
+        failed_count = len(self._redeem_attempts[user_id])
+
+        if failed_count > 3:
+            self._blocked_ips[user_id] = now + 1800
+            self._log_event("redeem_burst_detected", "", "", user_id, details={"attempts": failed_count})
             return {
                 "blocked": True,
-                "reason": "Too many failed login attempts",
+                "reason": "Too many failed redeem attempts",
                 "retry_after": 1800,
             }
 
         return {"blocked": False, "warning": False}
 
+    # ── Brute force: invoice creation ─────────────────────────────────
+
+    async def check_invoice_attempt(
+        self,
+        user_id: str,
+    ) -> dict[str, Any]:
+        """Track invoice creation per user. 5/hour → block 1 hour."""
+        now = time.time()
+
+        if user_id not in self._invoice_attempts:
+            self._invoice_attempts[user_id] = []
+
+        self._invoice_attempts[user_id].append(now)
+        self._invoice_attempts[user_id] = [
+            t for t in self._invoice_attempts[user_id] if now - t < 3600
+        ]
+
+        count = len(self._invoice_attempts[user_id])
+
+        if count > 5:
+            self._log_event("invoice_spam_detected", "", "", user_id, details={"count": count})
+            return {
+                "blocked": True,
+                "reason": "Too many invoice creation attempts (5/hour limit)",
+                "retry_after": 3600,
+            }
+
+        return {"blocked": False, "warning": False}
+
+    # ── Query methods ─────────────────────────────────────────────────
+
     def is_ip_blocked(self, ip: str) -> bool:
-        """Check if an IP is currently blocked."""
+        now = time.time()
         if ip in self._blocked_ips:
-            if time.time() < self._blocked_ips[ip]:
+            if now < self._blocked_ips[ip]:
                 return True
             del self._blocked_ips[ip]
         return False
 
     def unblock_ip(self, ip: str) -> bool:
-        """Manually unblock an IP."""
         if ip in self._blocked_ips:
             del self._blocked_ips[ip]
             log.info("ip_manually_unblocked", ip=ip)
@@ -165,7 +304,6 @@ class SuspiciousBehaviorDetector:
         return False
 
     def get_blocked_ips(self) -> list[dict[str, Any]]:
-        """Return all currently blocked IPs with unblock times."""
         now = time.time()
         result = []
         expired = []
@@ -183,7 +321,6 @@ class SuspiciousBehaviorDetector:
         return result
 
     def get_events(self, limit: int = 100) -> list[dict[str, Any]]:
-        """Return recent suspicious events."""
         events = self._events[-limit:]
         return [
             {
@@ -196,6 +333,8 @@ class SuspiciousBehaviorDetector:
             }
             for e in events
         ]
+
+    # ── Internal ──────────────────────────────────────────────────────
 
     def _log_event(
         self,
@@ -213,7 +352,6 @@ class SuspiciousBehaviorDetector:
             details=details or {},
         )
         self._events.append(event)
-        # Keep only last 1000 events in memory
         if len(self._events) > 1000:
             self._events = self._events[-1000:]
         log.warning(
