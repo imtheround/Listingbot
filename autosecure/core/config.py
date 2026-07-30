@@ -91,6 +91,16 @@ class HcaptchaConfig(BaseSettings):
     enabled: bool = True
 
 
+class OAuthConfig(BaseSettings):
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    google_redirect_uri: str = "http://104.168.24.47:3001/auth/google/callback"
+    google_auth_url: str = "https://accounts.google.com/o/oauth2/v2/auth"
+    google_token_url: str = "https://oauth2.googleapis.com/token"
+    google_userinfo_url: str = "https://www.googleapis.com/oauth2/v3/userinfo"
+    state_expiry_seconds: int = 600  # 10 min
+
+
 class SecurityDetectorConfig(BaseSettings):
     rate_limit_per_minute: int = 100
     rate_limit_block_minutes: int = 15
@@ -172,6 +182,7 @@ class Settings(BaseSettings):
     redis: RedisConfig = Field(default_factory=RedisConfig)
     security: SecurityConfig = Field(default_factory=SecurityConfig)
     hcaptcha: HcaptchaConfig = Field(default_factory=HcaptchaConfig)
+    oauth: OAuthConfig = Field(default_factory=OAuthConfig)
     security_detector: SecurityDetectorConfig = Field(default_factory=SecurityDetectorConfig)
     microsoft: MicrosoftConfig = Field(default_factory=MicrosoftConfig)
     apis: APIsConfig = Field(default_factory=APIsConfig)

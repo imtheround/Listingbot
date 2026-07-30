@@ -8,6 +8,16 @@ hcaptcha:
   verify_url: "https://api.hcaptcha.com/siteverify"
   enabled: true
 
+# OAuth Configuration
+oauth:
+  google_client_id: ""        # Set in .env (AUTOSECURE_OAUTH__GOOGLE_CLIENT_ID)
+  google_client_secret: ""    # Set in .env (AUTOSECURE_OAUTH__GOOGLE_CLIENT_SECRET)
+  google_redirect_uri: "http://104.168.24.47:3001/auth/google/callback"
+  google_auth_url: "https://accounts.google.com/o/oauth2/v2/auth"
+  google_token_url: "https://oauth2.googleapis.com/token"
+  google_userinfo_url: "https://www.googleapis.com/oauth2/v3/userinfo"
+  state_expiry_seconds: 600
+
 # Discord Bot Configuration
 discord:
   tokens:
